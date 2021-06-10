@@ -6,7 +6,11 @@ SVFgit="https://github.com/SVF-tools/SVF.git"
 SVFdir="$FPEdir/SVF"
 SVFheader="$SVFdir/include"
 SVFlib="$SVFdir/Release-build/lib"
-# LLVM_DIR is set by build.sh
+
+if [ $LLVM_DIR = "" ]
+then
+   LLVM_DIR="$SVFdir/llvm-12.0.0.obj"
+fi   
 LLVMinclude="$LLVM_DIR/include"
 LLVMlib="$LLVM_DIR/lib"
 
