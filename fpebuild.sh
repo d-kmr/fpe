@@ -54,7 +54,7 @@ fi
 # Analyzer building
 cd $FPEdir
 echo "Compiling analyzer"
-if [ $LLVM_DIR = "" ]
+if [[ $LLVM_DIR = "" ]]
 then
    LLVM_DIR="$SVFdir/llvm-12.0.0.obj"
 fi   
