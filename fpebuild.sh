@@ -7,17 +7,10 @@ SVFdir="$FPEdir/SVF"
 SVFheader="$SVFdir/include"
 SVFlib="$SVFdir/Release-build/lib"
 
-if [ $LLVM_DIR = "" ]
-then
-   LLVM_DIR="$SVFdir/llvm-12.0.0.obj"
-fi   
-LLVMinclude="$LLVM_DIR/include"
-LLVMlib="$LLVM_DIR/lib"
-
 if [ $# = 0 ]
 then
 	echo "Usage: fpebuild.sh [install|reinstall|clean]"
-	echo "Options"
+	echo "[Options]"
 	echo "install  : fpe building with SVF installation"
 	echo "reinstall: cleanup and reinstalling fpe and SVF"	
 	echo "clean    : delete SVF directory and other object files"
@@ -61,6 +54,13 @@ fi
 # Analyzer building
 cd $FPEdir
 echo "Compiling analyzer"
+if [ $LLVM_DIR = "" ]
+then
+   LLVM_DIR="$SVFdir/llvm-12.0.0.obj"
+fi   
+LLVMinclude="$LLVM_DIR/include"
+LLVMlib="$LLVM_DIR/lib"
+echo "LLVM_DIR = $LLVM_DIR"
 g++ -I$LLVMinclude -I$SVFheader -fPIC -std=gnu++14 -O3 -fno-rtti -Wno-deprecated   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -std=gnu++14 -o analyzer.o -c analyzer.cpp
 
 g++ -fPIC -std=gnu++14 -O3 -fno-rtti -Wno-deprecated analyzer.o -o analyzer $SVFlib/libSvf.a $SVFlib/CUDD/libCudd.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMipo.a $LLVMlib/libLLVMIRReader.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMInstrumentation.a $LLVMlib/libLLVMTarget.a $LLVMlib/libLLVMLinker.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMScalarOpts.a $LLVMlib/libLLVMSupport.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMAsmParser.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMAggressiveInstCombine.a $LLVMlib/libLLVMVectorize.a $LLVMlib/libLLVMTransformUtils.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMObject.a $LLVMlib/libLLVMBitReader.a $LLVMlib/libLLVMMCParser.a $LLVMlib/libLLVMTextAPI.a $LLVMlib/libLLVMProfileData.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMRemarks.a $LLVMlib/libLLVMBitstreamReader.a $LLVMlib/libLLVMMC.a $LLVMlib/libLLVMBinaryFormat.a $LLVMlib/libLLVMDebugInfoCodeView.a $LLVMlib/libLLVMDebugInfoMSF.a $LLVMlib/libLLVMSupport.a -lrt -ldl -ltinfo -lpthread -lm $LLVMlib/libLLVMDemangle.a 
