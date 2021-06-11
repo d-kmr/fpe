@@ -9,15 +9,15 @@ SVFlib="$SVFdir/Release-build/lib"
 
 if [ $# = 0 ]
 then
-	echo "Usage: fpebuild.sh [install|reinstall|clean]"
+	echo "Usage: fpebuild.sh [make|remake|clean]"
 	echo "[Options]"
-	echo "install  : fpe building with SVF installation"
-	echo "reinstall: cleanup and reinstalling fpe and SVF"	
-	echo "clean    : delete SVF directory and other object files"
+	echo "make  : compile fpe installing SVF"
+	echo "remake: clean all and recompile fpe and SVF"	
+	echo "clean : delete SVF directory and other object files"
 	exit
 fi   
 
-if [[ $1 = "clean" ]] || [[ $1 = "reinstall" ]]
+if [[ $1 = "clean" ]] || [[ $1 = "remake" ]]
 then
 	echo "Deleting SVF directory and .o files ..."
 	rm -fr $SVFdir
@@ -42,16 +42,19 @@ fi
 # SVF installation
 if [[ $SVFinstalled = 0 ]] 
 then
-	echo "Start installation of SVF"	
-	echo "git cloning and building SVF"
+	echo "Start building of SVF"	
+	echo "git cloning"
 	git clone $SVFgit
 	echo "Patching to suppress output for FPE"
 	patch SVF/lib/Util/PTAStat.cpp patchfile
+	echo "cd SVF"	
 	cd SVF
+	echo "build SVF"
 	source ./build.sh
 fi
 
 # Analyzer building
+echo "cd fpe"
 cd $FPEdir
 echo "Compiling analyzer"
 if [[ $LLVM_DIR = "" ]]
