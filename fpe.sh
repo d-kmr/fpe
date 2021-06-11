@@ -1,11 +1,10 @@
 #!/bin/bash
 
+FPEdir=`pwd`
 PROJECT=$1
-SVFDIR="/home/kmr/Dropbox/Work/Research/Project/SVF"
-CURDIR=`pwd`
-ANALYZER="$CURDIR/analyzer"
-CLANG="/home/kmr/node_modules/llvm-10.0.0.obj/bin/clang"
-WPA="$SVFDIR/Release-build/bin/wpa"
+SVFdir="$FPEdir/SVF"
+ANALYZER="$FPEdir/analyzer"
+WPA="$SVFdir/Release-build/bin/wpa"
 
 if [ $# -ne 1 ]; then
 	echo "Function Pointer Eliminator for C"
@@ -21,8 +20,7 @@ if [ ! -d $PROJECT ]; then
 	exit
 fi
 
-CURDIR=`pwd`
-echo "ENTER $PROJECT"
+echo "Enter $PROJECT"
 cd $PROJECT
 
 echo "DELETE old .bc files"
@@ -42,11 +40,11 @@ echo "START: linking .bc files"
 BCFILES=`find . -name '*.bc'`
 llvm-link $BCFILES -o allfiles.bc
 
-wpa -nander -dump-pag -dump-consG allfiles.bc
+#$WPA -nander -dump-pag -dump-consG allfiles.bc
+$WPA -nander allfiles.bc
+$WPA -nander -dump-pag allfiles.bc
 
-wpa -nander -dump-pag allfiles.bc
-
-wpa -ander -dump-callgraph allfiles.bc
+$WPA -ander -dump-callgraph allfiles.bc
 
 
 echo "FINISH: linking .bc files"			
