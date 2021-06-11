@@ -110,7 +110,7 @@ PAGNode* getParentNode(PAGNode* src){
   edge = src->getIncomingEdges(PAGEdge::NormalGep).begin();
   if(*edge != NULL) {
 	node = (*edge)->getSrcNode();
-	if(node->getValue()->getName() == ""){
+	if(node->getValue()->getName().str() == ""){
 	  edge = node->getIncomingEdges(PAGEdge::Load).begin();
 	  if(*edge != NULL){
 		node = (*edge)->getSrcNode();
@@ -122,7 +122,7 @@ PAGNode* getParentNode(PAGNode* src){
   edge = src->getIncomingEdges(PAGEdge::Copy).begin();
   if(*edge != NULL){
 	node = (*edge)->getSrcNode();
-	if(node->getValue()->getName() == ""){
+	if(node->getValue()->getName().str() == ""){
 	  edge = node->getIncomingEdges(PAGEdge::Load).begin();
 	  if(*edge != NULL){
 		node = (*edge)->getSrcNode();
@@ -158,7 +158,7 @@ std::string mkFPcall(PAG* pag, const llvm::Value *val){
   Function *fun = callbase->getCalledFunction();
   if (fun)
 	{ // direct-call
-	  funstr = fun->getName();
+	  funstr = fun->getName().str();
 	}
   else
 	{// indirect-call
@@ -366,7 +366,7 @@ int main(int argc, char ** argv) {
 	if (sel != NULL || phi != NULL){ fpKind = -1; goto Output; }
 	
 	if (fpNode != NULL && fpNode->getFunction() != NULL){
-	  inFun = fpNode->getFunction()->getName(); // get parent func.name in which "%0" appears
+	  inFun = fpNode->getFunction()->getName().str(); // get parent func.name in which "%0" appears
 	} else {
 	  inFun = "";
 	}
