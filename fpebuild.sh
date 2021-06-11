@@ -54,11 +54,12 @@ then
 	echo "build SVF"
 	source ./build.sh
 fi
+echo ""
 
 # Analyzer building
+echo "Compiling analyzer"
 echo "cd fpe"
 cd $FPEdir
-echo "Compiling analyzer"
 if [[ $LLVM_DIR = "" ]]
 then
    LLVM_DIR="$SVFdir/llvm-12.0.0.obj"

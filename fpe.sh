@@ -53,5 +53,5 @@ echo "FINISH: linking .bc files"
 
 echo "----------------"
 
-time $ANALYZER allfiles.bc 2>&1 | tee ${CFILE%.*}-result.txt
+time $ANALYZER allfiles.bc 2>&1 | tee ${CFILE%.*}.json
 

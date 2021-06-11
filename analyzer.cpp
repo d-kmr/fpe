@@ -288,19 +288,14 @@ std::string stringVector(std::vector<std::string> v, std::string l, std::string 
   return rawstr.str();
 }
 
-
-
 int main(int argc, char ** argv) {
+  
   // argment processing for SVF
   int arg_num = 0;
   char **arg_value = new char*[argc];
   std::vector<std::string> moduleNameVec;
   SVFUtil::processArguments(argc, argv, arg_num, arg_value, moduleNameVec);
   SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
-
-  // outputStyle: 0=JSON-style (default), 1=simple-style (when something after .bc filename is given)
-  int outputStyle = 0;
-  if(argc > 2) outputStyle = 1;
 
   std::string _quote = "\"", _comma = ", ", _none = "", _newline = "\n",_commanewline = ",\n";
 	
@@ -371,7 +366,7 @@ int main(int argc, char ** argv) {
 	  inFun = "";
 	}
 	  
-	// update by the source of the incoming Load edge (if exists)
+	// update by the source of the incoming Load edge (if it exists)
 	if (fpNode->hasIncomingEdges(PAGEdge::Load)){
 	  PAGEdge::PAGEdgeSetTy::iterator edge = fpNode->getIncomingEdges(PAGEdge::Load).begin();
 	  fpNode = (*edge)->getSrcNode();
@@ -397,70 +392,44 @@ int main(int argc, char ** argv) {
 	}
 	
   Output:
-	switch(outputStyle){
-	case 0: // JSON-style output
-	  switch (fpKind){
-	  case 0: // FPVAR-case
-		rawstr << "[" + tagFPVAR + comma + "{";		
-		rawstr << keyName + colon + addQuote(hdName);
-		rawstr << comma;
-		rawstr << keyInFun + colon + addQuote(inFun);
-		rawstr << comma;
-		rawstr << keyToFuns + colon + "[" << stringVector(toFuns,_quote,_quote,_comma,_none) << "] ";
-		rawstr << "}]";
-		result.push_back(rawstr.str());		
-		break;
-	  case 1: // FPFLD-case
-		rawstr << "[" + tagFPFLD + comma + "{";
-		rawstr << keyPtr + colon + addQuote(hdName) + comma;
-		rawstr << keyFld + colon + "[" << stringVector(flds,_none,_none,_comma,_none) << "]" + comma;		
-		rawstr << keyInFun + colon + "\"" << inFun << "\"";
-		rawstr << comma;		
-		rawstr << keyToFuns + colon + "[" << stringVector(toFuns,_quote,_quote,_comma,_none) << "] ";
-		rawstr << "}]";
-		result.push_back(rawstr.str());		
-		break;
-	  case 2: // FPARR-case
-		rawstr << "[" + tagFPARR + comma + "{";
-		rawstr << keyPtr + colon + addQuote(hdName) + comma;
-		//		rawstr << keyIdx + colon << stringVector(flds,_none,_none,_comma,_none) << comma;
-		rawstr << keyInFun + colon + "\"" << inFun << "\"";
-		rawstr << comma;		
-		rawstr << keyToFuns + colon + "[" << stringVector(toFuns,_quote,_quote,_comma,_none) << "] ";
-		rawstr << "}]";
-		result.push_back(rawstr.str());		
-		break;		
-	  default: // Skip-case
-		break;
-	  }
+	switch (fpKind){
+	case 0: // FPVAR-case
+	  rawstr << "[" + tagFPVAR + comma + "{";		
+	  rawstr << keyName + colon + addQuote(hdName);
+	  rawstr << comma;
+	  rawstr << keyInFun + colon + addQuote(inFun);
+	  rawstr << comma;
+	  rawstr << keyToFuns + colon + "[" << stringVector(toFuns,_quote,_quote,_comma,_none) << "] ";
+	  rawstr << "}]";
+	  result.push_back(rawstr.str());		
 	  break;
-	default: // simple output
-	  switch (fpKind){
-	  case 0: // FPVAR-case
-		rawstr << hdName << " @" << inFun << " --> ";
-		rawstr << "{" << stringVector(toFuns,_none,_none,_comma,_none) << "}";
-		result.push_back(rawstr.str());		
-		break;
-	  case 1: // FPFLD-case
-		rawstr << hdName << "->" << stringVector(flds,_none,_none,"->",_none) << " --> ";
-		rawstr << "{" << stringVector(toFuns,_none,_none,_comma,_none) << "}";
-		result.push_back(rawstr.str());
-		break;
-	  default: // Skip-case
-		break;
-	  }
+	case 1: // FPFLD-case
+	  rawstr << "[" + tagFPFLD + comma + "{";
+	  rawstr << keyPtr + colon + addQuote(hdName) + comma;
+	  rawstr << keyFld + colon + "[" << stringVector(flds,_none,_none,_comma,_none) << "]" + comma;		
+	  rawstr << keyInFun + colon + "\"" << inFun << "\"";
+	  rawstr << comma;		
+	  rawstr << keyToFuns + colon + "[" << stringVector(toFuns,_quote,_quote,_comma,_none) << "] ";
+	  rawstr << "}]";
+	  result.push_back(rawstr.str());		
+	  break;
+	case 2: // FPARR-case
+	  rawstr << "[" + tagFPARR + comma + "{";
+	  rawstr << keyPtr + colon + addQuote(hdName) + comma;
+	  //		rawstr << keyIdx + colon << stringVector(flds,_none,_none,_comma,_none) << comma;
+	  rawstr << keyInFun + colon + "\"" << inFun << "\"";
+	  rawstr << comma;		
+	  rawstr << keyToFuns + colon + "[" << stringVector(toFuns,_quote,_quote,_comma,_none) << "] ";
+	  rawstr << "}]";
+	  result.push_back(rawstr.str());		
+	  break;		
+	default: // Skip-case
 	  break;
 	}
   }
 
-  switch(outputStyle){
-  case 0: // JSON-style output
-	cout << "[\n" << stringVector(result,_none,_none,_commanewline,_newline) << "]\n";
-	break;
-  default: // simple-output
-	cout << stringVector(result,_none,_none,_newline,_newline);
-	break;
-  }
-	
+  std::string output = "[\n" + stringVector(result,_none,_none,_commanewline,_newline) + "]\n";
+  cout << output;
+  
   return 0;
 }
