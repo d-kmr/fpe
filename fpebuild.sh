@@ -8,24 +8,38 @@ SVFheader="$SVFdir/include"
 SVFlib="$SVFdir/Release-build/lib"
 Analyzer="analyzer"
 
-if [ $# = 0 ]
-then
+function message(){
 	echo "Usage: fpebuild.sh [make|remake|clean]"
 	echo "[Options]"
 	echo "make  : compile fpe installing SVF"
 	echo "remake: clean all and recompile fpe and SVF"	
 	echo "clean : delete SVF directory and other object files"
 	exit
-fi   
+}
 
-if [[ $1 = "clean" ]] || [[ $1 = "remake" ]]
-then
+function cleaning(){
 	echo "Deleting SVF directory and .o files ..."
 	rm -fr $SVFdir
 	rm -f *.o
 	rm -f $Analyzer
 	echo "Done"
-	if [[ $1 = "clean" ]]
+}
+
+
+if [ $# = 0 ] 
+then
+	message
+fi	
+
+if [ $1 != "make" ] && [ $1 != "remake" ] && [ $1 != "clean" ]
+then
+	message
+fi   
+
+if [ $1 = "clean" ] || [ $1 = "remake" ]
+then
+	cleaning
+	if [ $1 = "clean" ]
 	then
 		exit
 	fi
