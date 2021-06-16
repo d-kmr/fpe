@@ -15,7 +15,9 @@ cd fpe
 ./fpebuild.sh make
 
 cd slac
+
 make
 
 [Use]
+
 ./fpe.sh <C-Project-Directory>
