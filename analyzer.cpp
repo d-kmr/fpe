@@ -13,6 +13,9 @@ using namespace SVF;
 using namespace llvm;
 using namespace std;
 
+// For Debugging 
+int debugflag = false;
+
 std::string _Quote = "\"";
 std::string _Comma = ", ";
 std::string _None = "";
@@ -23,14 +26,30 @@ std::string addQuote(const std::string str){
   return "\"" + str + "\"";
 }
 
-// To display a value
+
+// To display elements
+std::string getTypeName(const llvm::Type* tp)
+{
+  if (tp == NULL) { return("NullType"); }
+  std::string str;
+  raw_string_ostream rawstr(str);
+  tp->print(rawstr);
+  return (rawstr.str());
+}
+
+void peekType(const llvm::Type* tp)
+{
+  cout << getTypeName(tp) << "\n" << flush;
+  return;  
+}
+
 void peekValue(const llvm::Value *val)
 {
   if (val == NULL){ cout << "It's NULL!\n"; return; }
   std::string str;
   raw_string_ostream rawstr(str);
   val->print(rawstr);
-  cout << rawstr.str() << "\n";
+  cout << rawstr.str() << "\n" << flush;
   return;
 }
 
@@ -39,6 +58,34 @@ void peekNode(PAGNode* node)
   if (node == NULL) { cout << "NullNode!\n"; return; }
   const llvm::Value* val = node->getValue();
   peekValue(val);
+  return;
+}
+
+void debugPeekNode(std::string mes, PAGNode* node)
+{
+  if (!debugflag) return;
+  cout << mes; peekNode(node);
+  return;
+}
+
+void debugPeekValue(std::string mes, const llvm::Value* val)
+{
+  if (!debugflag) return;
+  cout << mes; peekValue(val);
+  return;
+}
+
+void debugPeekType(std::string mes, const llvm::Type* tp)
+{
+  if (!debugflag) return;
+  cout << mes; peekType(tp);
+  return;
+}
+
+void debugPeekString(std::string mes1, std::string mes2)
+{
+  if (!debugflag) return;
+  cout << mes1 << mes2 << "\n";
   return;
 }
 
@@ -134,8 +181,8 @@ std::string mkJSON (string name,FPkind kind,vector<string> flds,string inFun,vec
   rawstr << "[" + tagFPFLD + comma + "{";
   rawstr << keyPtr + colon + addQuote(name);
   rawstr << comma;
-  rawstr << keyKind + colon + addQuote(kind2str(kind));
-  rawstr << comma;  
+  //  rawstr << keyKind + colon + addQuote(kind2str(kind));
+  //  rawstr << comma;  
   rawstr << keyFld + colon + "[" << stringVector(flds,_None,_None,_Comma,_None) << "]";
   rawstr << comma;  
   rawstr << keyInFun + colon + addQuote(inFun);
@@ -219,7 +266,8 @@ std::string checkNodeType(PAGNode* node)
 	  if(opCodeName == "load") return("LOAD");
 	  if(opCodeName == "alloca") return("ALLOCA");
 	  if(opCodeName == "getelementptr") return("GEP");
-	  if(opCodeName == "common") return("COMMON");  
+	  if(opCodeName == "common") return("COMMON");
+	  if(opCodeName == "bitcast") return("BITCAST");	  
 	  return("OTHER");
 	}
   else if(glob != NULL)
@@ -231,21 +279,18 @@ std::string checkNodeType(PAGNode* node)
 
 PAGNode* getParentNode(PAGNode* node, PAGEdge::PEDGEK edgeKind)
 {
+  if(node == NULL) { cout << "getParentNode: NULL node\n"; return(NULL); }
   PAGEdge::PAGEdgeSetTy::iterator edge = node->getIncomingEdges(edgeKind).begin();
   if(*edge == NULL) return(NULL);
   return (*edge)->getSrcNode();
 }				   
 
 
-
-
-
-
-
 // Getting the distination node of a LOAD edge from 'node'
 // If 'node' doesn't have a LOAD edge, this returns NULL
 std::vector<PAGNode*> getLoadDist(PAGNode* node)
 {
+  if(node == NULL) { cout << "getParentNode: NULL node\n"; exit(0); }
   std::vector<PAGNode*> nodes;
   PAGEdge::PAGEdgeSetTy edgeItr = node->getOutgoingEdges(PAGEdge::Load); 
   for (auto edge = edgeItr.begin(), iend = edgeItr.end(); edge != iend; edge++)
@@ -259,33 +304,53 @@ std::vector<PAGNode*> getLoadDist(PAGNode* node)
 // 'node' is a pointer node if it is a source node of a Load edge
 bool isPtrNode(PAGNode* node)
 {
-  std::vector<PAGNode*> nodes = getLoadDist(node);
-  return (nodes.size() != 0);
-}
-
-std::vector<PAGNode*> getGepDists(PAGNode* node)
-{
-  std::vector<PAGNode*> nodes;
-  
-  return(nodes);
+  return (getLoadDist(node).size() != 0);
 }
 
 // Get the TopNode (start node for obtaining fpcall info) of given node
 // TopNode is ALLOCA for local variables, COMMON for global variables
 PAGNode* getTopNode(PAGNode* node)
 {
-  PAGEdge::PAGEdgeSetTy::iterator edge1,edge2,edge;  
+  PAGEdge::PAGEdgeSetTy::iterator edge1,edge2,edge3,edge;  
   PAGNode* nd = node;
-  
-  while (nd != NULL && checkNodeType(nd) != "ALLOCA" && checkNodeType(nd) != "GLOBAL")
+
+  while (nd != NULL)
 	{
+	  //	  fprintf(stderr,"getTopNodeBegin-%d\n",ctr);
 	  edge1 = nd->getIncomingEdges(PAGEdge::NormalGep).begin();
 	  edge2 = nd->getIncomingEdges(PAGEdge::Load).begin();
-	  if (*edge1 == NULL && *edge2 == NULL) return(NULL);
-	  edge = (*edge1 != NULL) ? edge1 : edge2;
+	  edge3 = nd->getIncomingEdges(PAGEdge::Copy).begin();	// for union
+											  
+	  /*
+	  PAGEdge::PAGEdgeSetTy::iterator edge4 = nd->getIncomingEdges(PAGEdge::Store).begin();
+	  PAGEdge::PAGEdgeSetTy::iterator edge5 = nd->getIncomingEdges(PAGEdge::Call).begin();
+	  PAGEdge::PAGEdgeSetTy::iterator edge6 = nd->getIncomingEdges(PAGEdge::Ret).begin();
+	  PAGEdge::PAGEdgeSetTy::iterator edge7 = nd->getIncomingEdges(PAGEdge::VariantGep).begin();
+	  PAGEdge::PAGEdgeSetTy::iterator edge8 = nd->getIncomingEdges(PAGEdge::ThreadFork).begin();
+	  PAGEdge::PAGEdgeSetTy::iterator edge9 = nd->getIncomingEdges(PAGEdge::ThreadJoin).begin();
+	  PAGEdge::PAGEdgeSetTy::iterator edge10 = nd->getIncomingEdges(PAGEdge::Addr).begin();	  
+	  if (checkNodeType(nd) == "ALLOCA" || checkNodeType(nd) == "GLOBAL") break;
+	  if (*edge3 != NULL) { cout << "Copy is found!\n"; break; }
+	  if (*edge4 != NULL) { cout << "Store is found!\n"; break; }	  
+	  if (*edge5 != NULL) { cout << "Call is found!\n"; break; }
+	  if (*edge6 != NULL) { cout << "Ret is found!\n"; break; }
+	  if (*edge7 != NULL) { cout << "VariantGep is found!\n"; break; }
+	  if (*edge8 != NULL) { cout << "ThreadFork is found!\n"; break; }
+	  if (*edge9 != NULL) { cout << "ThreadJoin is found!\n"; break; }
+	  if (*edge10 != NULL) { cout << "Addr is found!\n"; break; }
+	  */	  
+	  if (*edge1 == NULL && *edge2 == NULL && *edge3 == NULL) break;
+	  if (*edge1 != NULL) edge = edge1;
+	  else
+		if (*edge2 != NULL) edge = edge2;
+		else
+		  if (*edge3 != NULL && checkNodeType((*edge3)->getSrcNode()) == "ALLOCA")
+			// when bitcast node is a child of union-alloca
+			edge = edge3;
+		  else break;
 	  nd = (*edge)->getSrcNode();
+	  //	  fprintf(stderr,"getTopNodeEnd-%d\n",ctr);
 	}
-  
   return(nd);
 }
 
@@ -301,6 +366,7 @@ NodeKind checkNodeKind(PAGNode* node)
   if (loadEdgeItr.size() != 0)
 	{
 	  std::vector<PAGNode*> nodes = getLoadDist(node);
+	  if (nodes[0] == NULL) { return(UNKNOWN); }
 	  if (nodes[0]->getOutgoingEdges(PAGEdge::NormalGep).size() == 0)
 		return (FPVAR);
 	  else
@@ -310,6 +376,7 @@ NodeKind checkNodeKind(PAGNode* node)
   for (auto iter = gepEdgeItr.begin(), iend = gepEdgeItr.end(); iter != iend; iter++)
 	{
 	  PAGNode* nd = (*iter)->getDstNode();
+	  if(nd == NULL) { return (UNKNOWN); }
 	  std::string name = nd->getValue()->getName().str();
 	  if (name.find("arrayidx") != std::string::npos
 		  && getLoadDist(nd).size() > 0
@@ -338,12 +405,13 @@ FPkind getTopFpKind(PAGNode* node)
   for (auto iter = gepEdgeItr.begin(), iend = gepEdgeItr.end(); iter != iend; iter++)
 	{
 	  PAGNode* nd = (*iter)->getDstNode();
+	  if (nd == NULL) { continue; }
 	  std::string name = nd->getValue()->getName().str();
 	  if (name.find("arrayidx") != std::string::npos
 		  && getLoadDist(nd).size() > 0
 		  && getLoadDist(nd)[0]->getOutgoingEdges(PAGEdge::NormalGep).size() > 0)
 		arrptrFlag = true;
-	  if (name.find("arrayidx") != std::string::npos && getLoadDist(nd).size() == 0)		  
+	  if (name.find("arrayidx") != std::string::npos && getLoadDist(nd).size() == 0)  
 		arrFlag = true;
 	}
   FPkind res = arrptrFlag ? ArrPtr : (arrFlag ? Arr : Var);
@@ -352,148 +420,318 @@ FPkind getTopFpKind(PAGNode* node)
 
 std::string getPrevPointer(PAGNode* node)
 {
+  debugPeekNode("getPrevPointer-Begin: node: ", node);
+  if (node == NULL) { cout << "getPrePointer:NULL-input\n"; return ("dummy"); }
   const llvm::Value* val = node->getValue();
   const llvm::GetElementPtrInst* gepInst = dyn_cast<GetElementPtrInst>(val);
   const llvm::LoadInst* loadInst = dyn_cast<LoadInst>(val);
-  std::string ptr;
-
+  const llvm::CastInst*	castInst = dyn_cast<CastInst>(val);
+  
+  debugPeekValue("getPrevPointer-2: ", val);  
+  std::string ptr = "dummy";
   if(loadInst != NULL){
 	ptr = loadInst->getPointerOperand()->getName().str();
-	return(ptr);
   }
-  
-  if(gepInst != NULL){
-	ptr = gepInst->getPointerOperand()->getName().str();
-	return(ptr);
-  }
-
-  return("dummy");
+  else
+	if(gepInst != NULL){
+	  ptr = gepInst->getPointerOperand()->getName().str();
+	} else
+	  if (castInst != NULL){
+		llvm::Type* tp = castInst->getSrcTy();
+		if (!tp->isPointerTy ()){ cout << "Unexpected type\n"; exit(0); }
+		ptr = val->stripPointerCasts()->getName().str();
+	  }
+  debugPeekString("getPrePointer-End: ", ptr); 
+  return(ptr);
 }
+
+
+typedef struct NK {
+  PAGNode* node;
+  FPkind kind;
+} NK;
 
 // Finding a next gep node
 // bottom-up creating of a field info
-void nextGep(PAGNode** gepNodeP, FPkind* kindP, PAGNode* topNode)
+NK* nextGep(NK* nodekind, PAGNode* topNode)
 {
-  PAGNode* curNode = *gepNodeP;
+  debugPeekNode("nextGep-Begin:nodekind->node: ", nodekind->node);
+  if(topNode == NULL || topNode->getValue() == NULL){
+	cout << "nextGep: Unexpected topNode\n"; exit(0);
+  }
+  if(nodekind->node == NULL || nodekind->node->getValue() == NULL){
+	cout << "nextGep: Unexpected curNode\n"; exit(0);
+  }  
   std::string topName = topNode->getValue()->getName().str();  
-  std::string subgoal = curNode->getValue()->getName().str();  
+  std::string subgoal = nodekind->node->getValue()->getName().str();  
   bool ptrFlag = false;
   bool arrFlag = false;
+  debugPeekNode("nextGep-1:nodekind->node: ", nodekind->node);  
   
   while(true) // curNode is a gep-node or a load-node && subgoal = curName
 	{
-	  subgoal = getPrevPointer(curNode);
+	  if(nodekind->node == NULL || nodekind->node->getValue() == NULL){
+		cout << "nextGep: Unexpected nodekind (in while)\n";
+		exit(0);
+	  }
+	  debugPeekNode("nextGep-2:nodekind->node: ", nodekind->node);
+	  subgoal = getPrevPointer(nodekind->node);
+	  debugPeekNode("nextGep-3:nodekind->node: ", nodekind->node);
+	  debugPeekString("nextGep-3:topName: ", topName);
+	  debugPeekString("nextGep-3:subgoal: ", subgoal);
 	  if(subgoal.find("arrayidx") != std::string::npos) { arrFlag = true; }
-	  if(subgoal == topName) { *gepNodeP = NULL; *kindP = NoInfo; return; }
-	  if(dyn_cast<LoadInst>(curNode->getValue()) != NULL)
+	  if(subgoal == topName) {
+		nodekind->node = NULL;
+		nodekind->kind = NoInfo;
+		debugPeekNode("nextGep-End:Reached topNode:", topNode);
+		return(nodekind);
+	  }
+	  debugPeekNode("nextGep-4:nodekind->node: ", nodekind->node);
+	  if(dyn_cast<LoadInst>(nodekind->node->getValue()) != NULL)
 		{
-		  curNode = getParentNode(curNode, PAGEdge::Load);
+		  nodekind->node = getParentNode(nodekind->node, PAGEdge::Load);
 		  ptrFlag = true;
 		  break;
 		}
-	  curNode = getParentNode(curNode, PAGEdge::NormalGep);
-	  std::string curName = curNode->getValue()->getName().str();
+	  debugPeekNode("nextGep-5:nodekind->node: ", nodekind->node);
+	  PAGNode* node1 = getParentNode(nodekind->node, PAGEdge::NormalGep);
+	  PAGNode* node2 = getParentNode(nodekind->node, PAGEdge::Copy); // for the case: alloca -COPY-> bitcast %union
+	  nodekind->node = (node1 != NULL) ? node1 : node2;
+	  debugPeekNode("nextGep-6:nodekind->node: ", nodekind->node);
+	  debugPeekString("nextGep-6:subgoal: ", subgoal);
+	  debugPeekValue("nextGep-6:nodekind->node->getValue(): ", nodekind->node->getValue());
+	  std::string curName = nodekind->node->getValue()->getName().str();
+	  debugPeekNode("nextGep-7:nodekind->node: ", nodekind->node);
 	  if(curName == subgoal){ continue; }	  
-	  PAGEdge::PAGEdgeSetTy edgeItr = curNode->getOutgoingEdges(PAGEdge::NormalGep);
-	  
+	  PAGEdge::PAGEdgeSetTy edgeItr = nodekind->node->getOutgoingEdges(PAGEdge::NormalGep);
+	  debugPeekNode("nextGep-8:nodekind->node: ", nodekind->node);
 	  for (auto edge = edgeItr.begin(), iend = edgeItr.end(); edge != iend; edge++)
 		{
 		  if(*edge == NULL) { cout << "Something unexpected happens!"; exit(0); }
 		  PAGNode* dst = (*edge)->getDstNode();
+		  debugPeekNode("nextGep-9:nodekind->node: ", nodekind->node);
 		  if(subgoal == dst->getValue()->getName().str())
 			{
-			  curNode = dst;
+			  nodekind->node = dst;
 			  break;
 			}
+		  debugPeekNode("nextGep-A:nodekind->node: ", nodekind->node);
 		}
+	  debugPeekNode("nextGep-B:nodekind->node: ", nodekind->node);
 	  if(subgoal.find("arrayidx") == std::string::npos) break;
 	}
-  *gepNodeP = curNode;  
-  *kindP = ptrFlag ? (arrFlag ? ArrPtr : Ptr) : (arrFlag ? Arr : Var);
-  return;
+  nodekind->kind = ptrFlag ? (arrFlag ? ArrPtr : Ptr) : (arrFlag ? Arr : Var);
+  debugPeekNode("nextGep-End:nodekind->node: ", nodekind->node);
+  return(nodekind);
 }
 
-std::string createFldOne(PAGNode* node,FPkind kind)
+std::string createFldOne(NK* nodekind)
 {
   // making fld_index
-  const llvm::GetElementPtrInst* gep = dyn_cast<GetElementPtrInst>(node->getValue());
-  if(gep == NULL) { cout << "Unexpected case\n"; return(""); }
-  std::string fld;
-  raw_string_ostream rawstr(fld);
-  auto ii = gep->idx_begin();
-  ii++;
-  llvm::Value* fldPosValue = *ii;
-  fldPosValue->print(rawstr); // field position, like "i32 5" (5-th pos)
-  std::string fldIndex = rawstr.str().substr(4); // "i32 5" --> "5"
+  debugPeekNode("createFldOne-Begin:nodekind->node: ", nodekind->node);
+  std::string  fldIndex = "0";
+  std::string  strTpName = "NoType";
+  const llvm::Value* val = nodekind->node->getValue();
+  const llvm::Instruction* inst = dyn_cast<Instruction>(val);
+  llvm::Type* tp = NULL;
+  
+  debugPeekValue("createFldOne-0:nodekind->node->getValue(): ", val);
+  const llvm::GetElementPtrInst* gep = dyn_cast<GetElementPtrInst>(inst);
+  if(gep != NULL)
+	{ // normal case 
+	  std::string fld;
+	  raw_string_ostream rawstr(fld);
+	  auto fldPosValueItr = gep->idx_begin();
+	  fldPosValueItr++;
+	  if ((*fldPosValueItr) == NULL) { cout << "createFldOne: Unexpected fldPosValue\n"; return(""); }  
+	  (*fldPosValueItr)->print(rawstr); // field position, like "i32 5" (5-th pos)
+	  fldIndex = rawstr.str().substr(4); // "i32 5" --> "5"
+	  debugPeekNode("createFldOne-1:nodekind->node: ", nodekind->node);
+  
+	  // making fld_name
+	  if(nodekind->node == NULL) { cout << "createFldOne: Unexpected node\n"; return(""); }  
 
-  // making fld_name
-  std::string fldName = node->getValue()->getName().str();
-
-  // making tp
-  llvm::Type* tp = gep->getSourceElementType();  
-  std::string strTpName = (tp->isStructTy()) ? dyn_cast<StructType>(tp)->getName().str() : "NoType";
-
+	  // making tp
+	  tp = gep->getSourceElementType();
+	  debugPeekType("createFldOne-2a:gep->getSourceElementType(): ", tp);
+	  if (tp->isStructTy())
+		{
+		  strTpName = dyn_cast<StructType>(tp)->getName().str();
+		  debugPeekString("createFldOne-2a:strTpName: ",strTpName);
+		}
+	  else {
+		cout << "createFldOne: unexpected type-1\n";
+		exit(0);
+	  }
+	}
+  else
+	if (inst->isCast())
+	{ // nodekind->node is bitcast (union case)
+	  tp = dyn_cast<CastInst>(inst)->getSrcTy();
+	  debugPeekType("createFldOne-2b:dyn_cast<CastInst>(inst)->getSrcTy(): ", tp);
+	  strTpName = getTypeName(tp);
+	  debugPeekString("createFldOne-2b:strTpName: ",strTpName);
+	}
+	else exit(0);
+  debugPeekNode("createFldOne-3:nodekind->node: ", nodekind->node);
+  debugPeekValue("createFldOne-3:nodekind->node->getValue(): ", nodekind->node->getValue());
+  std::string fldName = nodekind->node->getValue()->getName().str();
   std::string fldOne = "{"
-	+ keyTp + colon + addQuote(strTpName) + ","
-	+ keyFldName + colon + addQuote(fldName) + ","
-	+ keyFldIndex + colon + fldIndex + ","
-	+ keyKind + colon + addQuote(kind2str(kind))
+	+ keyTp + colon + addQuote(strTpName) 
+	+ "," + keyFldName + colon + addQuote(fldName) 
+	+ "," + keyFldIndex + colon + fldIndex
+	//	+ "," + keyKind + colon + addQuote(kind2str(nodekind->kind))
 	+ "}";
-
+  debugPeekString("createFldOne-End:nodekind->node: ", fldOne);    
   return (fldOne);
 }
+
 
 // Creating Fields (main part)
 void createFlds(PAGNode* fpNode, PAGNode* topNode, std::vector<string>* fldsP)
 {
-  PAGNode* node = getParentNode(fpNode,PAGEdge::Load); // GEP node
-  FPkind kind = Ptr;  // initial fp should be a pointer
-  std::string fld = createFldOne(node,kind);
+  debugPeekString("createFlds-Begin", "");  
+  NK* nodekind = (NK*)malloc(sizeof(NK));
+  nodekind->node = getParentNode(fpNode,PAGEdge::Load); // GEP node
+  nodekind->kind = Ptr; // initial fp should be a pointer
+  debugPeekNode("createFlds-0:nodekind->node: ", nodekind->node);
+  debugPeekNode("createFlds-0:fpNode        : ", fpNode);
+  debugPeekNode("createFlds-0:topNode       : ", topNode);
+  std::string fld = createFldOne(nodekind);
+  if(fldsP == NULL) { cout << "createFlds: unexpected fldsP\n" ; free(nodekind); return; }
   (*fldsP).push_back(fld);
-  
+
   while(true)
-	{	  
-	  nextGep(&node,&kind,topNode);
-	  if(node == NULL) break; // when no nextGep
-	  std::string fld1 = createFldOne(node,kind);
+	{
+	  debugPeekNode("createFlds-1:nodekind->node: ", nodekind->node);	  
+	  nodekind = nextGep(nodekind,topNode);
+	  debugPeekNode("createFlds-2:nodekind->node: ", nodekind->node);	  
+	  if(nodekind->node == NULL) {
+		break; // when no nextGep
+	  }
+	  debugPeekString("createFlds-3:before createFldOne", "");
+	  std::string fld1 = createFldOne(nodekind);
+	  debugPeekString("createFlds-3:after  createFldOne", "");
 	  (*fldsP).push_back(fld1);
 	}
+  free (nodekind);
+  debugPeekString("createFlds-End", "");  
   return;
 }
 
+
+std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
+{
+  std::string res;
+  raw_string_ostream rawstr(res);
+  std::vector<std::string> flds;
+  
+  // function pointer load node for fpcall, like %20 = load %fp2
+  PAGNode* fpNode = pag->getPAGNode(fpNodeID);
+
+  // cout << "mkJsonOneCall: fpNode: ";  peekNode(fpNode);
+	  
+  // Making in-fun
+  string inFun = (fpNode != NULL && fpNode->getFunction() != NULL) ? fpNode->getFunction()->getName().str() : "FAILED-TO-GET_INFUN";
+	  
+  // Getting function values for fpNode from the SVF analysis result
+  const NodeBS& fpPts = ander->getPts(fpNodeID); // iterator	  
+  PAGNode* fpPagNode = ander->getPAG()->getPAGNode(*fpPts.begin());
+  // Checking: Skip if the tail-part contains a non-function node	  
+  if (fpPagNode == NULL
+	  || !fpPagNode->hasValue()
+	  || fpPagNode->getType() == NULL
+	  || fpPagNode->getType()->getTypeID() != llvm::Type::FunctionTyID)
+	return("continue");
+
+  // Making toFuns
+  vector<string> toFuns;	  
+  for (NodeBS::iterator ii=fpPts.begin(), ie=fpPts.end() ; ii != ie; ++ii)
+	{
+	  PAGNode* node = ander->getPAG()->getPAGNode(*ii);
+	  if(node->hasValue())
+		{
+		  const std::string funName = node->getValue()->getName().str();
+		  toFuns.push_back(funName);
+		}
+	}
+	  
+  // Getting Top-level node
+  FPkind topKind = NoInfo;
+  PAGNode* topNode = getTopNode(fpNode);
+  if(topNode == NULL) { cout << "No TopNode\n"; exit(0); }
+  std::string topName = topNode->getValue()->getName().str();
+  NodeKind topNodeKind = checkNodeKind(topNode);
+
+  // For conditional expression
+  // Case of (cond ? F : G)() --> skip
+  // Case of (cond ? fp : G)() --> skip (out of assumption)		  
+  const llvm::SelectInst* sel = dyn_cast<SelectInst>(topNode->getValue());
+  const llvm::PHINode* phi = dyn_cast<PHINode>(topNode->getValue());
+  if (sel != NULL || phi != NULL){
+	topNodeKind = UNKNOWN;
+	return "continue";
+  }
+
+  // For FPVAR/FPARR cases, goto Output directly since it's already finished	  
+  if (topNodeKind == FPVAR) { topKind = Var; goto Output; }
+  if (topNodeKind == FPARR) { topKind = Arr; goto Output; }		
+
+  // For FPFLD case
+  topKind = getTopFpKind(topNode);
+
+  // Creating field info
+  //  cout << "fpNode (main): "; peekNode(fpNode);
+  createFlds(fpNode,topNode,&flds);
+  std::reverse(flds.begin(),flds.end());  
+  
+ Output:
+  std::string jsonStr = mkJSON(topName,topKind,flds,inFun,toFuns);  
+  return(jsonStr);
+}
+
+
 int main(int argc, char ** argv)
 {
+  debugPeekString("Main starts","");
   // argment processing for SVF
   int arg_num = 0;
-  char **arg_value = new char*[argc];
+  char** arg_value = new char*[argc];
   std::vector<std::string> moduleNameVec;
   SVFUtil::processArguments(argc, argv, arg_num, arg_value, moduleNameVec);
-  SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);  
-	
+  SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
+  
   /// Build Program Assignment Graph (PAG)
   PAGBuilder builder;
-  PAG *pag = builder.build(svfModule);
+  PAG* pag = builder.build(svfModule);
 
   /// Create Andersen's pointer analysis
   Andersen *ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
 
   const PAG::CallSiteToFunPtrMap& aaa = pag->getIndirectCallsites();
-  NodeID fpNodeID;
-  std::string headStr, tailStr, inFun;
-  PAGNode *fpNode, *refNode;
-  std::vector<std::string> result;
   std::vector<std::string> jsonResult;
+
+  // cout << "Start processing each fpNode\n" << flush;
+  int counter = 0;
 
   for (auto iter = aaa.begin(), iend = aaa.end(); iter != iend; iter++)
 	{
-	  // Result
+	  //	  fprintf(stderr, "%d-th call\n",counter++);
+	  NodeID fpNodeID = (*iter).second;
+	  std::string s = mkJsonOneCall(fpNodeID, pag, ander);
+	  if(s != "continue") jsonResult.push_back(s);
+
+	  /*
 	  std::string res;
 	  raw_string_ostream rawstr(res);
-	  std::vector<std::string> head, flds, getCurrentNameResult;
+	  std::vector<std::string> head, flds;
 	  
 	  // function pointer load node for fpcall, like %20 = load %fp2
 	  fpNodeID = (*iter).second;
 	  fpNode = pag->getPAGNode(fpNodeID);
+
+	  fprintf(stderr, "Processing FPnode: \n");
+	  peekNode(fpNode);
 	  
 	  // Making in-fun
 	  string inFun = (fpNode != NULL && fpNode->getFunction() != NULL) ? fpNode->getFunction()->getName().str() : "FAILED-TO-GET_INFUN";
@@ -522,7 +760,8 @@ int main(int argc, char ** argv)
 	  
 	  // Getting Top-level node
 	  FPkind topKind = NoInfo;
-	  PAGNode* topNode = getTopNode(fpNode);	  
+	  PAGNode* topNode = getTopNode(fpNode);
+	  if(topNode == NULL) { cout << "No TopNode\n"; exit(0); }
 	  std::string topName = topNode->getValue()->getName().str();
 	  NodeKind topNodeKind = checkNodeKind(topNode);
 
@@ -542,14 +781,20 @@ int main(int argc, char ** argv)
 
 	  // Creating field info
 	  createFlds(fpNode,topNode,&flds);
-	  std::reverse(flds.begin(),flds.end());	 
-	
+	  std::reverse(flds.begin(),flds.end());
+
 	Output:
 	  jsonResult.push_back( mkJSON(topName,topKind,flds,inFun,toFuns) );
+	  delete phi;
+	  delete sel;
+	  */
 	}
-
+  
   std::string jsonOutput = "[\n" + stringVector(jsonResult,_None,_None,_CommaNewLine,_NewLine) + "]\n";  
   cout << jsonOutput;
-  
+
+  delete ander;
+  delete pag;    
+  delete svfModule;  
   return 0;
 }

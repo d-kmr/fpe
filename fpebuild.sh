@@ -76,14 +76,16 @@ echo "cd fpe"
 cd $FPEdir
 if [[ $LLVM_DIR = "" ]]
 then
-   LLVM_DIR="$SVFdir/llvm-12.0.0.obj"
+	LLVM_DIR="$SVFdir/llvm-12.0.0.obj"
+	echo "Please add $SVFdir/llvm-12.0.0.obj to PATH"
 fi   
 LLVMinclude="$LLVM_DIR/include"
 LLVMlib="$LLVM_DIR/lib"
 echo "LLVM_DIR = $LLVM_DIR"
 echo "LLVMinclude = $LLVMinclude"
 echo "SVFheader = $SVFheader"
-g++ -I$LLVMinclude -I$SVFheader -fPIC -std=gnu++14 -O3 -fno-rtti -Wno-deprecated -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o analyzer.o -c analyzer.cpp
+# -fsanitize=address -fno-omit-frame-pointer 
+g++ -g -I$LLVMinclude -I$SVFheader -fPIC -std=gnu++14 -O3 -fno-rtti -Wno-deprecated -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o analyzer.o -c analyzer.cpp
 
-g++ -fPIC -std=gnu++14 -O3 -fno-rtti -Wno-deprecated analyzer.o -o $Analyzer $SVFlib/libSvf.a $SVFlib/CUDD/libCudd.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMipo.a $LLVMlib/libLLVMIRReader.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMInstrumentation.a $LLVMlib/libLLVMTarget.a $LLVMlib/libLLVMLinker.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMScalarOpts.a $LLVMlib/libLLVMSupport.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMAsmParser.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMAggressiveInstCombine.a $LLVMlib/libLLVMVectorize.a $LLVMlib/libLLVMTransformUtils.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMObject.a $LLVMlib/libLLVMBitReader.a $LLVMlib/libLLVMMCParser.a $LLVMlib/libLLVMTextAPI.a $LLVMlib/libLLVMProfileData.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMRemarks.a $LLVMlib/libLLVMBitstreamReader.a $LLVMlib/libLLVMMC.a $LLVMlib/libLLVMBinaryFormat.a $LLVMlib/libLLVMDebugInfoCodeView.a $LLVMlib/libLLVMDebugInfoMSF.a $LLVMlib/libLLVMSupport.a -lrt -ldl -ltinfo -lpthread -lz -lm $LLVMlib/libLLVMDemangle.a 
+g++ -g -fPIC -std=gnu++14 -O3 -fno-rtti -Wno-deprecated analyzer.o -o $Analyzer $SVFlib/libSvf.a $SVFlib/CUDD/libCudd.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMipo.a $LLVMlib/libLLVMIRReader.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMInstrumentation.a $LLVMlib/libLLVMTarget.a $LLVMlib/libLLVMLinker.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMScalarOpts.a $LLVMlib/libLLVMSupport.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMAsmParser.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMAggressiveInstCombine.a $LLVMlib/libLLVMVectorize.a $LLVMlib/libLLVMTransformUtils.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMObject.a $LLVMlib/libLLVMBitReader.a $LLVMlib/libLLVMMCParser.a $LLVMlib/libLLVMTextAPI.a $LLVMlib/libLLVMProfileData.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMRemarks.a $LLVMlib/libLLVMBitstreamReader.a $LLVMlib/libLLVMMC.a $LLVMlib/libLLVMBinaryFormat.a $LLVMlib/libLLVMDebugInfoCodeView.a $LLVMlib/libLLVMDebugInfoMSF.a $LLVMlib/libLLVMSupport.a -lrt -ldl -ltinfo -lpthread -lz -lm $LLVMlib/libLLVMDemangle.a 
 echo "Done"
