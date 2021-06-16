@@ -32,13 +32,13 @@ do
 	echo "$CFILE"
 	BCFILE=${CFILE%.*}.bc
 	clang -c -fno-discard-value-names -emit-llvm $CFILE
-	llvm-dis $BCFILE
+	llvm-dis-11 $BCFILE
 done;
 echo "FINISH: making .bc files"
 
 echo "START: linking .bc files"
 BCFILES=`find . -name '*.bc'`
-llvm-link $BCFILES -o allfiles.bc
+llvm-link-11 $BCFILES -o allfiles.bc
 
 #$WPA -nander -dump-pag -dump-consG allfiles.bc
 $WPA -nander allfiles.bc
@@ -50,6 +50,9 @@ $WPA -ander -dump-callgraph allfiles.bc
 echo "FINISH: linking .bc files"			
 
 echo "----------------"
+echo $PROJECT${CFILE%.*}.json
 
 time $ANALYZER allfiles.bc 2>&1 | tee ${CFILE%.*}.json
 
+cd $FPEdir/slac
+time ./slac-gen.sh $PROJECT $PROJECT${CFILE%.*}.json
