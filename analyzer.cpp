@@ -311,11 +311,13 @@ bool isPtrNode(PAGNode* node)
 // TopNode is ALLOCA for local variables, COMMON for global variables
 PAGNode* getTopNode(PAGNode* node)
 {
+  debugPeekNode("getTopNode-Begin: ", node);
   PAGEdge::PAGEdgeSetTy::iterator edge1,edge2,edge3,edge;  
   PAGNode* nd = node;
 
   while (nd != NULL)
 	{
+	  debugPeekNode("getTopNode (in loop): ", nd);
 	  //	  fprintf(stderr,"getTopNodeBegin-%d\n",ctr);
 	  edge1 = nd->getIncomingEdges(PAGEdge::NormalGep).begin();
 	  edge2 = nd->getIncomingEdges(PAGEdge::Load).begin();
@@ -344,13 +346,14 @@ PAGNode* getTopNode(PAGNode* node)
 	  else
 		if (*edge2 != NULL) edge = edge2;
 		else
-		  if (*edge3 != NULL && checkNodeType((*edge3)->getSrcNode()) == "ALLOCA")
-			// when bitcast node is a child of union-alloca
-			edge = edge3;
+		  if (*edge3 != NULL
+			  && (checkNodeType((*edge3)->getSrcNode()) == "ALLOCA" || checkNodeType((*edge3)->getSrcNode()) == "GEP"))
+			  edge = edge3;
 		  else break;
 	  nd = (*edge)->getSrcNode();
 	  //	  fprintf(stderr,"getTopNodeEnd-%d\n",ctr);
 	}
+  debugPeekNode("getTopNode-End: ", nd);  
   return(nd);
 }
 
@@ -455,7 +458,7 @@ typedef struct NK {
 // bottom-up creating of a field info
 NK* nextGep(NK* nodekind, PAGNode* topNode)
 {
-  debugPeekNode("nextGep-Begin:nodekind->node: ", nodekind->node);
+  debugPeekNode("nextGep-Begin: nodekind->node: ", nodekind->node);
   if(topNode == NULL || topNode->getValue() == NULL){
 	cout << "nextGep: Unexpected topNode\n"; exit(0);
   }
@@ -466,6 +469,8 @@ NK* nextGep(NK* nodekind, PAGNode* topNode)
   std::string subgoal = nodekind->node->getValue()->getName().str();  
   bool ptrFlag = false;
   bool arrFlag = false;
+  debugPeekString("nextGep-1: subgoal(init): ", subgoal); // initial subgoal is the current node
+  debugPeekString("nextGep-1: topName: ", topName);    
   debugPeekNode("nextGep-1:nodekind->node: ", nodekind->node);  
   
   while(true) // curNode is a gep-node or a load-node && subgoal = curName
@@ -502,7 +507,11 @@ NK* nextGep(NK* nodekind, PAGNode* topNode)
 	  debugPeekValue("nextGep-6:nodekind->node->getValue(): ", nodekind->node->getValue());
 	  std::string curName = nodekind->node->getValue()->getName().str();
 	  debugPeekNode("nextGep-7:nodekind->node: ", nodekind->node);
-	  if(curName == subgoal){ continue; }	  
+	  if(curName == subgoal){
+		if (subgoal == "") continue;
+		debugPeekString("nextGep-7: reached subgoal: ",subgoal);
+		break;
+	  }	  
 	  PAGEdge::PAGEdgeSetTy edgeItr = nodekind->node->getOutgoingEdges(PAGEdge::NormalGep);
 	  debugPeekNode("nextGep-8:nodekind->node: ", nodekind->node);
 	  for (auto edge = edgeItr.begin(), iend = edgeItr.end(); edge != iend; edge++)
@@ -521,7 +530,7 @@ NK* nextGep(NK* nodekind, PAGNode* topNode)
 	  if(subgoal.find("arrayidx") == std::string::npos) break;
 	}
   nodekind->kind = ptrFlag ? (arrFlag ? ArrPtr : Ptr) : (arrFlag ? Arr : Var);
-  debugPeekNode("nextGep-End:nodekind->node: ", nodekind->node);
+  debugPeekNode("nextGep-End: nodekind->node: ", nodekind->node);
   return(nodekind);
 }
 
@@ -559,10 +568,14 @@ std::string createFldOne(NK* nodekind)
 		  strTpName = dyn_cast<StructType>(tp)->getName().str();
 		  debugPeekString("createFldOne-2a:strTpName: ",strTpName);
 		}
-	  else {
-		cout << "createFldOne: unexpected type-1\n";
-		exit(0);
-	  }
+	  else
+		if (tp->isArrayTy())
+			return(""); // just skip 
+		else
+		  {
+			cout << "createFldOne: unexpected type-1\n";
+			exit(0);
+		  }
 	}
   else
 	if (inst->isCast())
@@ -592,27 +605,33 @@ void createFlds(PAGNode* fpNode, PAGNode* topNode, std::vector<string>* fldsP)
 {
   debugPeekString("createFlds-Begin", "");  
   NK* nodekind = (NK*)malloc(sizeof(NK));
-  nodekind->node = getParentNode(fpNode,PAGEdge::Load); // GEP node
+  nodekind->node = getParentNode(fpNode,PAGEdge::Load); // GEP node or bitcast node
   nodekind->kind = Ptr; // initial fp should be a pointer
   debugPeekNode("createFlds-0:nodekind->node: ", nodekind->node);
   debugPeekNode("createFlds-0:fpNode        : ", fpNode);
   debugPeekNode("createFlds-0:topNode       : ", topNode);
   std::string fld = createFldOne(nodekind);
   if(fldsP == NULL) { cout << "createFlds: unexpected fldsP\n" ; free(nodekind); return; }
-  (*fldsP).push_back(fld);
+  if(fld != "" && checkNodeType(nodekind->node) == "GEP"){
+	debugPeekString("createFlds-0: push: ",fld);
+	(*fldsP).push_back(fld); // No-push if array field comes
+  }
 
   while(true)
 	{
-	  debugPeekNode("createFlds-1:nodekind->node: ", nodekind->node);	  
+	  debugPeekNode("createFlds (in loop): nodekind->node: ", nodekind->node);	  
 	  nodekind = nextGep(nodekind,topNode);
-	  debugPeekNode("createFlds-2:nodekind->node: ", nodekind->node);	  
+	  debugPeekNode("createFlds (in loop): nodekind->node: ", nodekind->node);	  
 	  if(nodekind->node == NULL) {
 		break; // when no nextGep
 	  }
-	  debugPeekString("createFlds-3:before createFldOne", "");
+	  debugPeekString("createFlds (in loop): before createFldOne", "");
 	  std::string fld1 = createFldOne(nodekind);
-	  debugPeekString("createFlds-3:after  createFldOne", "");
-	  (*fldsP).push_back(fld1);
+	  debugPeekString("createFlds-3 (in loop): after  createFldOne", "");
+	  if(fld1 != "" && checkNodeType(nodekind->node) == "GEP"){
+		debugPeekString("createFlds (in loop): push: ",fld1);
+		(*fldsP).push_back(fld1); // No-push if array field comes
+	  }
 	}
   free (nodekind);
   debugPeekString("createFlds-End", "");  
@@ -629,8 +648,10 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
   // function pointer load node for fpcall, like %20 = load %fp2
   PAGNode* fpNode = pag->getPAGNode(fpNodeID);
 
-  // cout << "mkJsonOneCall: fpNode: ";  peekNode(fpNode);
-	  
+  debugPeekString("---------------------","");
+  debugPeekNode ("mkJsonOneCall Begin: ", fpNode);
+  debugPeekString("--------","");
+  
   // Making in-fun
   string inFun = (fpNode != NULL && fpNode->getFunction() != NULL) ? fpNode->getFunction()->getName().str() : "FAILED-TO-GET_INFUN";
 	  
@@ -662,6 +683,8 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
   if(topNode == NULL) { cout << "No TopNode\n"; exit(0); }
   std::string topName = topNode->getValue()->getName().str();
   NodeKind topNodeKind = checkNodeKind(topNode);
+  debugPeekNode("mkJsonOneCall: topNode: ", topNode);
+  debugPeekString("mkJsonOneCall: topKind: ", kind2str(topKind));
 
   // For conditional expression
   // Case of (cond ? F : G)() --> skip
@@ -686,7 +709,9 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
   std::reverse(flds.begin(),flds.end());  
   
  Output:
-  std::string jsonStr = mkJSON(topName,topKind,flds,inFun,toFuns);  
+  std::string jsonStr = mkJSON(topName,topKind,flds,inFun,toFuns);
+  debugPeekString ("mkJsonOneCall End: ", jsonStr);
+  debugPeekString ("","");
   return(jsonStr);
 }
 
@@ -711,83 +736,11 @@ int main(int argc, char ** argv)
   const PAG::CallSiteToFunPtrMap& aaa = pag->getIndirectCallsites();
   std::vector<std::string> jsonResult;
 
-  // cout << "Start processing each fpNode\n" << flush;
-  int counter = 0;
-
   for (auto iter = aaa.begin(), iend = aaa.end(); iter != iend; iter++)
 	{
-	  //	  fprintf(stderr, "%d-th call\n",counter++);
 	  NodeID fpNodeID = (*iter).second;
 	  std::string s = mkJsonOneCall(fpNodeID, pag, ander);
 	  if(s != "continue") jsonResult.push_back(s);
-
-	  /*
-	  std::string res;
-	  raw_string_ostream rawstr(res);
-	  std::vector<std::string> head, flds;
-	  
-	  // function pointer load node for fpcall, like %20 = load %fp2
-	  fpNodeID = (*iter).second;
-	  fpNode = pag->getPAGNode(fpNodeID);
-
-	  fprintf(stderr, "Processing FPnode: \n");
-	  peekNode(fpNode);
-	  
-	  // Making in-fun
-	  string inFun = (fpNode != NULL && fpNode->getFunction() != NULL) ? fpNode->getFunction()->getName().str() : "FAILED-TO-GET_INFUN";
-	  
-	  // Getting function values for fpNode from the SVF analysis result
-	  const NodeBS& fpPts = ander->getPts(fpNodeID); // iterator	  
-	  PAGNode* fpPagNode = ander->getPAG()->getPAGNode(*fpPts.begin());
-	  // Checking: Skip if the tail-part contains a non-function node	  
-	  if (fpPagNode == NULL
-		  || !fpPagNode->hasValue()
-		  || fpPagNode->getType() == NULL
-		  || fpPagNode->getType()->getTypeID() != llvm::Type::FunctionTyID)
-		continue;
-
-	  // Making toFuns
-	  vector<string> toFuns;	  
-	  for (NodeBS::iterator ii=fpPts.begin(), ie=fpPts.end() ; ii != ie; ++ii)
-		{
-		  PAGNode* node = ander->getPAG()->getPAGNode(*ii);
-		  if(node->hasValue())
-			{
-			  const std::string funName = node->getValue()->getName().str();
-			  toFuns.push_back(funName);
-			}
-		}
-	  
-	  // Getting Top-level node
-	  FPkind topKind = NoInfo;
-	  PAGNode* topNode = getTopNode(fpNode);
-	  if(topNode == NULL) { cout << "No TopNode\n"; exit(0); }
-	  std::string topName = topNode->getValue()->getName().str();
-	  NodeKind topNodeKind = checkNodeKind(topNode);
-
-	  // For conditional expression
-	  // Case of (cond ? F : G)() --> skip
-	  // Case of (cond ? fp : G)() --> skip (out of assumption)		  
-	  const llvm::SelectInst* sel = dyn_cast<SelectInst>(fpNode->getValue());
-	  const llvm::PHINode* phi = dyn_cast<PHINode>(fpNode->getValue());
-	  if (sel != NULL || phi != NULL){ topNodeKind = UNKNOWN; goto Output; }
-
-	  // For FPVAR/FPARR cases, goto Output directly since it's already finished	  
-	  if (topNodeKind == FPVAR) { topKind = Var; goto Output; }
-	  if (topNodeKind == FPARR) { topKind = Arr; goto Output; }		
-
-	  // For FPFLD case
-	  topKind = getTopFpKind(topNode);
-
-	  // Creating field info
-	  createFlds(fpNode,topNode,&flds);
-	  std::reverse(flds.begin(),flds.end());
-
-	Output:
-	  jsonResult.push_back( mkJSON(topName,topKind,flds,inFun,toFuns) );
-	  delete phi;
-	  delete sel;
-	  */
 	}
   
   std::string jsonOutput = "[\n" + stringVector(jsonResult,_None,_None,_CommaNewLine,_NewLine) + "]\n";  
