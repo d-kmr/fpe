@@ -32,13 +32,13 @@ do
 	echo "$CFILE"
 	BCFILE=${CFILE%.*}.bc
 	clang -c -fno-discard-value-names -emit-llvm $CFILE
-	llvm-dis-11 $BCFILE
+	llvm-dis $BCFILE
 done;
 echo "FINISH: making .bc files"
 
 echo "START: linking .bc files"
 BCFILES=`find . -name '*.bc'`
-llvm-link-11 $BCFILES -o allfiles.bc
+llvm-link $BCFILES -o allfiles.bc
 
 #$WPA -nander -dump-pag -dump-consG allfiles.bc
 $WPA -nander allfiles.bc
