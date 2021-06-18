@@ -147,6 +147,10 @@ std::string comma = ", ";
 
 std::string mkJSON (string name,FPkind kind,vector<string> flds,string inFun,vector<string> toFuns)
 {
+  debugPeekString("mkJSON-Begin", "");
+  debugPeekString("mkJSON: name: ", name);  
+  debugPeekString("mkJSON: kind: ", kind2str(kind));
+  
   string str;
   raw_string_ostream rawstr(str);
   
@@ -160,6 +164,7 @@ std::string mkJSON (string name,FPkind kind,vector<string> flds,string inFun,vec
 	  rawstr << comma;
 	  rawstr << keyToFuns + colon + "[" << stringVector(toFuns,_Quote,_Quote,_Comma,_None) << "] ";
 	  rawstr << "}]";
+	  debugPeekString("mkJSON-End: ", "FPVAR");	  
 	  return (rawstr.str());
 	}
 
@@ -173,6 +178,7 @@ std::string mkJSON (string name,FPkind kind,vector<string> flds,string inFun,vec
 	  rawstr << comma;		
 	  rawstr << keyToFuns + colon + "[" << stringVector(toFuns,_Quote,_Quote,_Comma,_None) << "] ";
 	  rawstr << "}]";
+	  debugPeekString("mkJSON-End: ", "FPARR");	  
 	  return (rawstr.str());
 	}
 
@@ -189,6 +195,7 @@ std::string mkJSON (string name,FPkind kind,vector<string> flds,string inFun,vec
   rawstr << comma;
   rawstr << keyToFuns + colon + "[" << stringVector(toFuns,_Quote,_Quote,_Comma,_None) << "] ";
   rawstr << "}]";
+  debugPeekString("mkJSON-End: ", "FPFLD");  
   return (rawstr.str());
 }
 
@@ -358,22 +365,25 @@ PAGNode* getTopNode(PAGNode* node)
 }
 
 
-typedef enum { UNKNOWN, FPVAR, FPARR, FPFLDptr, FPFLDobj } NodeKind;
+typedef enum { UNKNOWN, VAR, ARR, STRUCT, UNION } NodeKind;
 
+// This is used only for top-node (alloca node)
 NodeKind checkNodeKind(PAGNode* node)
 {
   if (node == NULL) return (UNKNOWN);
   SVF::PAGEdge::PAGEdgeSetTy loadEdgeItr = node->getOutgoingEdges(PAGEdge::Load);
   SVF::PAGEdge::PAGEdgeSetTy  gepEdgeItr = node->getOutgoingEdges(PAGEdge::NormalGep);
+  SVF::PAGEdge::PAGEdgeSetTy  copyEdgeItr = node->getOutgoingEdges(PAGEdge::Copy);
+
+  if (copyEdgeItr.size() != 0) return(UNION);
 
   if (loadEdgeItr.size() != 0)
 	{
 	  std::vector<PAGNode*> nodes = getLoadDist(node);
 	  if (nodes[0] == NULL) { return(UNKNOWN); }
-	  if (nodes[0]->getOutgoingEdges(PAGEdge::NormalGep).size() == 0)
-		return (FPVAR);
-	  else
-		return (FPFLDptr);
+	  if (nodes[0]->getOutgoingEdges(PAGEdge::NormalGep).size() == 0
+		  && nodes[0]->getOutgoingEdges(PAGEdge::Copy).size() == 0) return (VAR);
+	  else return (STRUCT);
 	}
 
   for (auto iter = gepEdgeItr.begin(), iend = gepEdgeItr.end(); iter != iend; iter++)
@@ -384,10 +394,23 @@ NodeKind checkNodeKind(PAGNode* node)
 	  if (name.find("arrayidx") != std::string::npos
 		  && getLoadDist(nd).size() > 0
 		  && getLoadDist(nd)[0]->getOutgoingEdges(PAGEdge::NormalGep).size() == 0)
-		return (FPARR);
+		return (ARR);
 	}
   
-  return (FPFLDobj);
+  return (STRUCT);
+}
+
+std::string nodekind2str(NodeKind nk)
+{
+  switch(nk)
+	{
+	case UNKNOWN: return "UNKNOWN";
+	case VAR:     return "VAR";
+	case ARR:     return "ARR";
+	case STRUCT:  return "STRUCT";
+	case UNION:  return "UNION";	  
+	}
+  return "";
 }
 
 // FPkind Arr    is X[-].fld*() : %arrayidx=gep%X <-GEP- %X=alloca -GEP-> %fld=load%arrayidx -Load-> ...
@@ -612,10 +635,15 @@ void createFlds(PAGNode* fpNode, PAGNode* topNode, std::vector<string>* fldsP)
   debugPeekNode("createFlds-0:topNode       : ", topNode);
   std::string fld = createFldOne(nodekind);
   if(fldsP == NULL) { cout << "createFlds: unexpected fldsP\n" ; free(nodekind); return; }
-  if(fld != "" && checkNodeType(nodekind->node) == "GEP"){
-	debugPeekString("createFlds-0: push: ",fld);
-	(*fldsP).push_back(fld); // No-push if array field comes
-  }
+  //  if(fld != "" && checkNodeType(nodekind->node) == "GEP"){
+  if(fld != ""
+	 && fld.find("arrayidx") == std::string::npos
+	 && fld.find("{}") == std::string::npos
+	 ) // Do not push if array field or meaningless type comes
+	{
+	  debugPeekString("createFlds-0: push: ",fld);
+	  (*fldsP).push_back(fld); 
+	}
 
   while(true)
 	{
@@ -628,10 +656,14 @@ void createFlds(PAGNode* fpNode, PAGNode* topNode, std::vector<string>* fldsP)
 	  debugPeekString("createFlds (in loop): before createFldOne", "");
 	  std::string fld1 = createFldOne(nodekind);
 	  debugPeekString("createFlds-3 (in loop): after  createFldOne", "");
-	  if(fld1 != "" && checkNodeType(nodekind->node) == "GEP"){
-		debugPeekString("createFlds (in loop): push: ",fld1);
-		(*fldsP).push_back(fld1); // No-push if array field comes
-	  }
+	  if(fld1 != ""
+		 && fld1.find("arrayidx") == std::string::npos
+		 && fld1.find("{}") == std::string::npos
+		 ) // Do not push if array field or meaningless type comes
+		{
+		  debugPeekString("createFlds (in loop): push: ",fld1);
+		  (*fldsP).push_back(fld1);
+		}
 	}
   free (nodekind);
   debugPeekString("createFlds-End", "");  
@@ -685,6 +717,7 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
   NodeKind topNodeKind = checkNodeKind(topNode);
   debugPeekNode("mkJsonOneCall: topNode: ", topNode);
   debugPeekString("mkJsonOneCall: topKind: ", kind2str(topKind));
+  debugPeekString("mkJsonOneCall: topNodeKind: ", nodekind2str(topNodeKind));
 
   // For conditional expression
   // Case of (cond ? F : G)() --> skip
@@ -696,11 +729,19 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
 	return "continue";
   }
 
-  // For FPVAR/FPARR cases, goto Output directly since it's already finished	  
-  if (topNodeKind == FPVAR) { topKind = Var; goto Output; }
-  if (topNodeKind == FPARR) { topKind = Arr; goto Output; }		
+  // For VAR/ARR cases, goto Output directly since it's already finished	  
+  if (topNodeKind == VAR) {
+	debugPeekString("mkJsonOneCall: topNodeKind: ", "VAR");
+	topKind = Var;
+	goto Output;
+  }
+  if (topNodeKind == ARR) {
+	debugPeekString("mkJsonOneCall: topNodeKind: ", "ARR");
+	topKind = Arr;
+	goto Output;
+  }
 
-  // For FPFLD case
+  // For STRUCT/UNION case
   topKind = getTopFpKind(topNode);
 
   // Creating field info
