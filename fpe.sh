@@ -51,10 +51,7 @@ $WPA -ander -dump-callgraph allfiles.bc
 
 echo "FINISH: linking .bc files"			
 
-echo "----------------"
-echo $PROJECT${CFILE%.*}.json
-
 time $ANALYZER allfiles.bc 2>&1 | tee ${CFILE%.*}.json
 
-# cd $FPEdir/slac
-# time ./slac-gen.sh $PROJECT ${CFILE%.*}.json
+cd $FPEdir/slac
+time ./slac-gen.sh $PROJECT ${CFILE%.*}.json
