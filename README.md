@@ -7,7 +7,7 @@ Function Pointer Eliminator
 - zlib
 - git
 - xcode (macOS)
-- tcsh
+- tcsh or bash
 - z3
 
 [Opam requirement]
