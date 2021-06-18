@@ -169,16 +169,24 @@ let get_field_by_index (structures:(bytes * (VcpBase.Exp.t * VcpBase.Term.t) lis
       V.find (sanitize_tp tp) structures
     with
       Not_found ->
-      let st  = V.filter (fun k (_, v, _) -> List.length v > i && is_prefix (VcpBase.Exp.toStr (fst (List.nth v i))) nm ) structures in
+      let st  = V.filter (fun k (_, v, _) ->
+                    List.length v > i && is_prefix (VcpBase.Exp.toStr (fst (List.nth v i))) nm ) structures in
+      let lst = V.bindings st in
       if V.cardinal st = 1 then
-        snd (List.hd (V.bindings st))
+        snd (List.hd lst)
       else
-        raise HeuristicFails
+        let (_, h, _) = snd (List.hd lst) in
+        let h' : VcpBase.Exp.t list = fst |>>| h in 
+        if List.for_all (fun (_, y, _) -> fst |>>| y = h') (snd |>>| (List.tl lst)) then
+          snd (List.hd (V.bindings st))
+        else
+          raise HeuristicFails
   in
 
   let (fld, _) = List.nth flds i in
   let r = VcpBase.Exp.toStr fld in
   r
+;;
 ;;
 
 let pp_st structures =
