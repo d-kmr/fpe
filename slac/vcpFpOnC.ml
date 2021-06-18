@@ -204,10 +204,17 @@ let get_fld_fp structures fpdata expression =
   let (ptr, flds) = get_ptr_fields expression in
   match ptr with
     Some ptr ->
-     let r = (List.find (function FPFLD v ->
-                                let vptr = sanitize v.ptr in
-                                vptr = ptr && (get_field_by_index structures) |>>| v.fld = flds | _ -> false) fpdata) in
-     Some r
+     begin
+       try
+         let r =
+           (List.find (function FPFLD v ->
+                                 let vptr = sanitize v.ptr in
+                                 vptr = ptr && (get_field_by_index structures) |>>| v.fld = flds | _ -> false) fpdata)
+         in
+         Some r
+       with
+         Not_found -> None
+     end
   | None -> None
 ;;
 
@@ -606,6 +613,7 @@ let rec get_arrptr = function
     C.VARIABLE v -> v
   | C.INDEX (exp, _) -> get_arrptr exp
   | C.PAREN (exp) -> get_arrptr exp
+  | C.UNARY (C.MEMOF, exp) -> get_arrptr exp
   | _ -> raise (StError "Exception at Array Pointer")
 
 let rec transform_expression structures fpdata expression =
@@ -628,28 +636,41 @@ let rec transform_expression structures fpdata expression =
        begin
          let expression_list' = (transform_expression structures fpdata) |>>| expression_list in
          match expression with
-         | (C.VARIABLE fname) as v |
-           C.UNARY (C.MEMOF, ((C.VARIABLE fname) as v))
+         | (C.VARIABLE fname) as v 
+           | C.PAREN ((C.VARIABLE fname) as v)
+           | C.UNARY (C.MEMOF, ((C.VARIABLE fname) as v))
            | C.PAREN (C.UNARY (C.MEMOF, ((C.VARIABLE fname) as v)))
            ->
             begin
               match get_fpvar fpdata fname with
                 Some (FPVAR d) ->
                  (* pw "FPVAR"; Cprint.print_expression ex; pw ""; *)
-                 let ex' = build_conditional v expression_list' (sanitize |>>| d.to_funs) in
+                 let ex' = try
+                     build_conditional v expression_list' (sanitize |>>| d.to_funs)
+                   with
+                     Not_found -> pn "Not found in FPVAR"; raise Not_found
+                 in
                  (* pw "==>"; Cprint.print_expression ex'; pn ""; *)
                  ex'
               | _ ->
                  C.CALL (transform_expression structures fpdata expression,
                          expression_list')
             end
-         | C.INDEX _ as v ->
+         | C.INDEX _ as v
+           | C.PAREN (C.INDEX _ as v)
+           | C.UNARY (C.MEMOF, (C.INDEX _ as v))
+           | C.PAREN (C.UNARY (C.MEMOF, (C.INDEX _ as v)))
+           ->
             begin
               let ptr = get_arrptr expression in
               match get_fparr fpdata ptr with
                 Some (FPARR d) ->
                  (* pw "FPARR"; Cprint.print_expression ex; pw ""; *)
-                 let ex' = build_conditional v expression_list' (sanitize |>>| d.to_funs) in
+                 let ex' = try
+                     build_conditional v expression_list' (sanitize |>>| d.to_funs)
+                 with
+                   Not_found -> pn "Not found in FPARR"; raise Not_found
+                 in
                  (* pw "==>"; Cprint.print_expression ex'; pn ""; *)
                  ex'
               | _ ->
@@ -662,7 +683,11 @@ let rec transform_expression structures fpdata expression =
               match fpfld with
                 Some (FPFLD d) ->
                  (* pw "FPFLD"; Cprint.print_expression ex; pw ""; *)
-                 let ex' = build_conditional expression expression_list' (sanitize |>>| d.to_funs) in
+                 let ex' = try
+                     build_conditional expression expression_list' (sanitize |>>| d.to_funs)
+                 with
+                   Not_found -> pn "Not found in FPFLD"; raise Not_found
+                 in
                  (* pw "==>"; Cprint.print_expression ex'; pn ""; *)
                  ex'
               | _ -> 
@@ -948,7 +973,13 @@ let fp_transform_function fpdata fname structures block =
       iterS pp_ifptyp "\n" fpdata'; 
       pn "\n**************";
        Cprint.print_block block; *) 
-      let block' = transform_block structures fpdata' block in
+      let block' = try
+          transform_block structures fpdata' block
+        with
+          Not_found ->
+          pn ("Not found in Function " ^ fname);
+          raise Not_found
+      in
       (* pn "====>"; 
       Cprint.print_block block'; *) 
       block'

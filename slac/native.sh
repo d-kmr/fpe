@@ -40,8 +40,10 @@ ocamlopt -c manualinput_parser.mli
 ocamlopt -c manualinput_lexer.ml manualinput_parser.ml manualinput.ml
 
 
-ocamlfind ocamlopt -package ppx_deriving_yojson -linkpkg -bin-annot -o "slac-parser" -I $LIBDIR -cclib "-L. -lz3" $OCAMLLIBS $UCMXS $TRANS "slacParser.ml"
-ocamlfind ocamlopt -package ppx_deriving_yojson -linkpkg -bin-annot -o "slac-unit" -I $LIBDIR -cclib "-L. -lz3" $OCAMLLIBS $UCMXS $SOURCES "slacUnit.ml"
+#ocamlfind ocamlopt -package ppx_deriving_yojson -linkpkg -bin-annot -o "slac-parser" -I $LIBDIR -cclib "-L. -lz3" $OCAMLLIBS $UCMXS $TRANS "slacParser.ml"
+ocamlfind ocamlopt -package ppx_deriving_yojson -linkpkg -bin-annot -o "fpe-parser" -I $LIBDIR -cclib "-L. -lz3" $OCAMLLIBS $UCMXS $TRANS "fpeParser.ml"
+ocamlfind ocamlopt -package ppx_deriving_yojson -linkpkg -bin-annot -o "fpe-unit" -I $LIBDIR -cclib "-L. -lz3" $OCAMLLIBS $UCMXS $SOURCES "fpeUnit.ml"
+#ocamlfind ocamlopt -package ppx_deriving_yojson -linkpkg -bin-annot -o "slac-unit" -I $LIBDIR -cclib "-L. -lz3" $OCAMLLIBS $UCMXS $SOURCES "slacUnit.ml"
 #ocamlfind ocamlopt -package ppx_deriving_yojson -linkpkg -bin-annot -o "fpa-preprocess" -I $LIBDIR -cclib "-L. -lz3" $OCAMLLIBS $UCMXS $CMXS "fpaPreprocess.ml"
 ##ocamlopt -o "fpa-deplist" -I $LIBDIR -cclib "-L. -lz3" $OCAMLLIBS $UCMXS $CMXS "fpaDepList.ml"
 #ocamlfind ocamlopt -package ppx_deriving_yojson -linkpkg -bin-annot -o $TARGET -I $LIBDIR -cclib "-L. -lz3" $OCAMLLIBS $UCMXS $CMXS "vcp.ml"

@@ -54,4 +54,4 @@ echo "FINISH: linking .bc files"
 time $ANALYZER allfiles.bc 2>&1 | tee ${CFILE%.*}.json
 
 cd $FPEdir/slac
-time ./slac-gen.sh $PROJECT ${CFILE%.*}.json
+time ./gen.sh $PROJECT ${CFILE%.*}.json
