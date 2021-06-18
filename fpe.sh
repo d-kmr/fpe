@@ -1,11 +1,5 @@
 #!/bin/bash
 
-FPEdir=`pwd`
-PROJECT=$1
-SVFdir="$FPEdir/SVF"
-ANALYZER="$FPEdir/analyzer"
-WPA="$SVFdir/Release-build/bin/wpa"
-
 if [ $# -ne 1 ]; then
 	echo "Function Pointer Eliminator for C"
     echo "Usage: ./fpe.sh <project-dir>"
@@ -14,6 +8,14 @@ if [ $# -ne 1 ]; then
 	echo "(2) analyzes allfiles.bc by the driver program"	
     exit
 fi
+
+FPEdir=`pwd`
+PROJECT=$(cd $1 && pwd) # to get the full path of $1
+
+SVFdir="$FPEdir/SVF"
+ANALYZER="$FPEdir/analyzer"
+WPA="$SVFdir/Release-build/bin/wpa"
+
 
 if [ ! -d $PROJECT ]; then
 	echo "$PROJECT is not found"
@@ -27,7 +29,7 @@ echo "DELETE old .bc files"
 rm -f *.bc
 
 echo "START: Making .bc files"
-for CFILE in `find . -name '*.c'`
+for CFILE in `find $PROJECT -name '*.c'`
 do
 	echo "$CFILE"
 	BCFILE=${CFILE%.*}.bc
@@ -54,5 +56,5 @@ echo $PROJECT${CFILE%.*}.json
 
 time $ANALYZER allfiles.bc 2>&1 | tee ${CFILE%.*}.json
 
-cd $FPEdir/slac
-time ./slac-gen.sh $PROJECT $PROJECT${CFILE%.*}.json
+# cd $FPEdir/slac
+# time ./slac-gen.sh $PROJECT ${CFILE%.*}.json
