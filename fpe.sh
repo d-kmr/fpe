@@ -12,7 +12,7 @@ function myMessage {
 	echo "where <dir> contains C preprocessed files and sub directories."
 	echo ""
 	echo "Description:"		
-	echo "The command creates a new directory <dir>-fpe that contains"
+	echo "The command creates a new directory <dir>-FPE that contains"
 	echo "C files without function pointer calls in the same subdirectories."
 }
 
