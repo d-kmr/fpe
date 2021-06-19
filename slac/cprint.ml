@@ -733,23 +733,45 @@ and print_statement stat =
       print_block h
       
 and print_block blk = 
-  new_line();
-  print "{";
-  indent ();
-  if blk.blabels <> [] then begin
-    print "__label__ ";
-    print_commas false print blk.blabels;
-    print ";";
-    new_line ();
-  end;
-  if blk.battrs <> [] then begin
-    List.iter print_attribute blk.battrs;
-    new_line ();
-  end;
-  List.iter print_statement blk.bstmts;
-  unindent ();
-  print "}";
-  new_line ()
+  if List.length blk.bstmts = 1 then
+    begin
+      new_line();
+      
+      indent ();
+      if blk.blabels <> [] then begin
+          print "__label__ ";
+          print_commas false print blk.blabels;
+          print ";";
+          new_line ();
+        end;
+      if blk.battrs <> [] then begin
+          List.iter print_attribute blk.battrs;
+          new_line ();
+        end;
+      List.iter print_statement blk.bstmts;
+      unindent ();
+      new_line ()
+    end
+  else
+    begin
+      new_line();
+      print "{";
+      indent ();
+      if blk.blabels <> [] then begin
+          print "__label__ ";
+          print_commas false print blk.blabels;
+          print ";";
+          new_line ();
+        end;
+      if blk.battrs <> [] then begin
+          List.iter print_attribute blk.battrs;
+          new_line ();
+        end;
+      List.iter print_statement blk.bstmts;
+      unindent ();
+      print "}";
+      new_line ()
+    end
   
 and print_substatement stat =
   match stat with

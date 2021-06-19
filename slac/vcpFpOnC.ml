@@ -142,13 +142,21 @@ let rec get_ptr_fields = function
      (Some ptr, [fld])
   | C.MEMBEROFPTR (C.VARIABLE ptr, fld) ->
      (Some ptr, [fld])
+  | C.MEMBEROF (C.INDEX (C.VARIABLE ptr,_), fld) ->
+     
+     (Some ptr, [fld])
+  | C.MEMBEROFPTR (C.INDEX (C.VARIABLE ptr,_), fld) ->
+     (Some ptr, [fld])
   | C.MEMBEROF (expression, fld) ->
      let (ptr, flds) = get_ptr_fields expression in
      (ptr, flds @ [fld])
   | C.MEMBEROFPTR (expression, fld) ->
      let (ptr, flds) = get_ptr_fields expression in
      (ptr, flds @ [fld])
-  | _ ->
+  | C.PAREN (expression) ->
+     get_ptr_fields expression
+  | e ->
+    
      (None, [])
 ;;
 
@@ -679,6 +687,7 @@ let rec transform_expression structures fpdata expression =
             end
          | _ ->
             begin
+              
               let fpfld = get_fld_fp structures fpdata expression in
               match fpfld with
                 Some (FPFLD d) ->
