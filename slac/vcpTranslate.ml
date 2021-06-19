@@ -6558,7 +6558,13 @@ module Global = struct
             Block.update_structures sofar_structures;
             Block.ptr_structs.contents <- ptr_struct;            
 
-            let block' = Procedure.fptransform pointers sofar_structures fvs' ((spec,name), block) cabsloc fpdata in
+            let block' =
+              try
+                Procedure.fptransform pointers sofar_structures fvs' ((spec,name), block) cabsloc fpdata
+              with
+                Not_found -> (* raise Not_found *)
+                block
+            in
             Cprint.print_def (C.FUNDEF ((spec, name), block', something, cabsloc));
 
             (* let (((fld, _, _) as b), sts) =
@@ -7379,7 +7385,7 @@ module Global = struct
                                     C.DECDEF ((specifier, [(name, C.NO_INIT)]), cabsloc)
                                  | d -> d ) in
     let static_fundecs = fundef_to_fundec |>>| _funs in
-    let fundef_fundecs = fundef_to_fundec |>>| fundefs in
+    (* let fundef_fundecs = fundef_to_fundec |>>| fundefs in *)
     
     let (stn, extracted_structs, fundefs') = (fun (stn, extructed_structs, fundefs) fundef  ->
         dbg "TRANS" "Before Extraction\n" Cprint.print_def fundef;
@@ -7393,7 +7399,7 @@ module Global = struct
           STRUCT ((n), _) -> n::a
         | _ -> a
       ) |->> ([], extracted_structs) in *)
-    let all_decls = typedefs @ extracted_structs @ fundecs @ static_fundecs @ fundef_fundecs @ decls @ _others @ (List.rev fundefs') in
+    let all_decls = typedefs @ extracted_structs @ fundecs @ static_fundecs @ (* fundef_fundecs @ *) decls @ _others @ (List.rev fundefs') in
     
     dbg "ALLDEFS" "All definitions in final sort:\n" (iterS Cprint.print_def "\n") all_decls;
 
