@@ -1,4 +1,3 @@
-echo "Transformation begins"
 PWD=`pwd`
 
 PROJECT=$1
@@ -54,5 +53,3 @@ Transform(){
 }
 
 Transform "" 
-
-echo "Transformation is finished"
