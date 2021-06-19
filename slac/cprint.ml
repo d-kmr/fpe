@@ -287,7 +287,7 @@ and print_onlytype (specs, dt) =
 and print_name ((n, decl, attrs, _) : name) =
   print_decl n decl;
   space ();
-  (* print_attributes attrs *)
+  print_attributes attrs
 
 and print_init_name ((n, i) : init_name) =
   print_name n;

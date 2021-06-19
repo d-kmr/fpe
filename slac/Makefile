@@ -6,5 +6,5 @@ clean:
 	rm *.o
 	rm cparser.ml
 	rm clexer.ml
-	rm slac-unit
-	rm slac-parser
+	rm fpe-unit
+	rm fpe-parser
