@@ -142,11 +142,11 @@ let rec get_ptr_fields = function
      (Some ptr, [fld])
   | C.MEMBEROFPTR (C.VARIABLE ptr, fld) ->
      (Some ptr, [fld])
-  | C.MEMBEROF (C.INDEX (C.VARIABLE ptr,_), fld) ->
+  | C.MEMBEROF (C.INDEX (expression,_), fld) ->
+     get_ptr_fields (C.MEMBEROF (expression, fld))
      
-     (Some ptr, [fld])
-  | C.MEMBEROFPTR (C.INDEX (C.VARIABLE ptr,_), fld) ->
-     (Some ptr, [fld])
+  | C.MEMBEROFPTR (C.INDEX (expression,_), fld) ->
+     get_ptr_fields (C.MEMBEROF (expression, fld)) 
   | C.MEMBEROF (expression, fld) ->
      let (ptr, flds) = get_ptr_fields expression in
      (ptr, flds @ [fld])
