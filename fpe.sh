@@ -16,6 +16,12 @@ function myMessage {
 	echo "C files without function pointer calls in the same subdirectories."
 }
 
+function myFail {
+	echo "---------"
+	echo "FPE failed"
+	exit
+}
+
 if [ $# -ne 1 ]
 then
    myMessage
@@ -50,7 +56,7 @@ for CFILE in `find $PROJECT -name '*.c'`
 do
 	echo "$CFILE"
 	BCFILE=${CFILE%.*}.bc
-	clang -c -fno-discard-value-names -emit-llvm $CFILE -o $BCFILE
+	clang -c -fno-discard-value-names -emit-llvm $CFILE -o $BCFILE || myFail
 #	llvm-dis $BCFILE
 done;
 echo ">> End: making bitcode files"
@@ -59,7 +65,7 @@ echo ">> Begin: linking bitcode files"
 BCFILES=`find $PROJECT -name '*\.bc'`
 echo $PROJECT/allfiles.bc
 cd $PROJECT
-llvm-link -o $PROJECT/allfiles.bc $BCFILES
+llvm-link -o $PROJECT/allfiles.bc $BCFILES || myFail
 echo ">> End: linking bitcode files --> allfiles.bc is created"
 echo ""
 
@@ -70,11 +76,6 @@ echo $PROJECT/allfiles.bc
 function execAnalyzer {
 	#	time $ANALYZER $PROJECT/allfiles.bc 2>&1 | tee $PROJECT/fpe-output.json
 	$ANALYZER $PROJECT/allfiles.bc > $PROJECT/fpe-output.json	
-}
-function myFail {
-	echo "---------"
-	echo "FPE failed"
-	exit
 }
 time execAnalyzer || myFail
 echo ">> End: Function Pointer Analysis"
