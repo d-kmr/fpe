@@ -297,7 +297,7 @@ PAGNode* getParentNode(PAGNode* node, PAGEdge::PEDGEK edgeKind)
 // If 'node' doesn't have a LOAD edge, this returns NULL
 std::vector<PAGNode*> getLoadDist(PAGNode* node)
 {
-  if(node == NULL) { cout << "getParentNode: NULL node\n"; exit(0); }
+  if(node == NULL) { cout << "getParentNode: NULL node\n"; exit(1); }
   std::vector<PAGNode*> nodes;
   PAGEdge::PAGEdgeSetTy edgeItr = node->getOutgoingEdges(PAGEdge::Load); 
   for (auto edge = edgeItr.begin(), iend = edgeItr.end(); edge != iend; edge++)
@@ -464,7 +464,7 @@ std::string getPrevPointer(PAGNode* node)
 	} else
 	  if (castInst != NULL){
 		llvm::Type* tp = castInst->getSrcTy();
-		if (!tp->isPointerTy ()){ cout << "Unexpected type\n"; exit(0); }
+		if (!tp->isPointerTy ()){ cout << "Unexpected type\n"; exit(1); }
 		ptr = val->stripPointerCasts()->getName().str();
 	  }
   debugPeekString("getPrePointer-End: ", ptr); 
@@ -483,10 +483,10 @@ NK* nextGep(NK* nodekind, PAGNode* topNode)
 {
   debugPeekNode("nextGep-Begin: nodekind->node: ", nodekind->node);
   if(topNode == NULL || topNode->getValue() == NULL){
-	cout << "nextGep: Unexpected topNode\n"; exit(0);
+	cout << "nextGep: Unexpected topNode\n"; exit(1);
   }
   if(nodekind->node == NULL || nodekind->node->getValue() == NULL){
-	cout << "nextGep: Unexpected curNode\n"; exit(0);
+	cout << "nextGep: Unexpected curNode\n"; exit(1);
   }  
   std::string topName = topNode->getValue()->getName().str();  
   std::string subgoal = nodekind->node->getValue()->getName().str();  
@@ -500,7 +500,7 @@ NK* nextGep(NK* nodekind, PAGNode* topNode)
 	{
 	  if(nodekind->node == NULL || nodekind->node->getValue() == NULL){
 		cout << "nextGep: Unexpected nodekind (in while)\n";
-		exit(0);
+		exit(1);
 	  }
 	  debugPeekNode("nextGep-2:nodekind->node: ", nodekind->node);
 	  subgoal = getPrevPointer(nodekind->node);
@@ -539,7 +539,7 @@ NK* nextGep(NK* nodekind, PAGNode* topNode)
 	  debugPeekNode("nextGep-8:nodekind->node: ", nodekind->node);
 	  for (auto edge = edgeItr.begin(), iend = edgeItr.end(); edge != iend; edge++)
 		{
-		  if(*edge == NULL) { cout << "Something unexpected happens!"; exit(0); }
+		  if(*edge == NULL) { cout << "Something unexpected happens!"; exit(1); }
 		  PAGNode* dst = (*edge)->getDstNode();
 		  debugPeekNode("nextGep-9:nodekind->node: ", nodekind->node);
 		  if(subgoal == dst->getValue()->getName().str())
@@ -597,7 +597,7 @@ std::string createFldOne(NK* nodekind)
 		else
 		  {
 			cout << "createFldOne: unexpected type-1\n";
-			exit(0);
+			exit(1);
 		  }
 	}
   else
@@ -608,7 +608,7 @@ std::string createFldOne(NK* nodekind)
 	  strTpName = getTypeName(tp);
 	  debugPeekString("createFldOne-2b:strTpName: ",strTpName);
 	}
-	else exit(0);
+	else exit(1);
   debugPeekNode("createFldOne-3:nodekind->node: ", nodekind->node);
   debugPeekValue("createFldOne-3:nodekind->node->getValue(): ", nodekind->node->getValue());
   std::string fldName = nodekind->node->getValue()->getName().str();
@@ -690,9 +690,15 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
   // Getting function values for fpNode from the SVF analysis result
   const NodeBS& fpPts = ander->getPts(fpNodeID); // iterator	  
   PAGNode* fpPagNode = ander->getPAG()->getPAGNode(*fpPts.begin());
+
+  // Checking: Skip if the tail-part contains a non-function node	  
+  if( !fpPagNode->hasValue() )
+	{
+	  debugPeekString("mkJsonOneCall: ","fpcall with no Value! (fail)");
+	  exit(1);
+	}
   // Checking: Skip if the tail-part contains a non-function node	  
   if (fpPagNode == NULL
-	  || !fpPagNode->hasValue()
 	  || fpPagNode->getType() == NULL
 	  || fpPagNode->getType()->getTypeID() != llvm::Type::FunctionTyID)
 	return("continue");
@@ -712,7 +718,7 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
   // Getting Top-level node
   FPkind topKind = NoInfo;
   PAGNode* topNode = getTopNode(fpNode);
-  if(topNode == NULL) { cout << "No TopNode\n"; exit(0); }
+  if(topNode == NULL) { cout << "No TopNode\n"; exit(1); }
   std::string topName = topNode->getValue()->getName().str();
   NodeKind topNodeKind = checkNodeKind(topNode);
   debugPeekNode("mkJsonOneCall: topNode: ", topNode);

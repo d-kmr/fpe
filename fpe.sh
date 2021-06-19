@@ -5,7 +5,7 @@ SVFdir="$FPEdir/SVF"
 ANALYZER="$FPEdir/analyzer"
 WPA="$SVFdir/Release-build/bin/wpa"
 
-function message {
+function myMessage {
 	echo "FPE - Function Pointer Eliminator for C"
 	echo ""
 	echo "Usage: fpe.sh <dir> [options]"
@@ -18,7 +18,7 @@ function message {
 
 if [ $# -ne 1 ]
 then
-   message
+   myMessage
    exit
 fi
 
@@ -67,18 +67,27 @@ echo ">> Begin: Function Pointer Analysis"
 # $WPA -nander allfiles.bc
 # $WPA -nander -dump-pag allfiles.bc
 echo $PROJECT/allfiles.bc
-time $ANALYZER $PROJECT/allfiles.bc 2>&1 | tee $PROJECT/fpe-output.json
+function execAnalyzer {
+	#	time $ANALYZER $PROJECT/allfiles.bc 2>&1 | tee $PROJECT/fpe-output.json
+	$ANALYZER $PROJECT/allfiles.bc > $PROJECT/fpe-output.json	
+}
+function myFail {
+	echo "---------"
+	echo "FPE failed"
+	exit
+}
+time execAnalyzer || myFail
 echo ">> End: Function Pointer Analysis"
 
 echo ">> Begin: Program Transformation"
-echo ">> Result files are put in $PROJECT-FPE"
 cd $FPEdir/slac
 echo $PROJECT
 echo $PROJECT/fpe-output.json
 time ./gen.sh $PROJECT $PROJECT/fpe-output.json
 echo ">> End: Program Transformation"
-
-echo ">> Finish"
+echo ">> Output results: $PROJECT-FPE"
+echo "---------"
+echo "FPE finished"
 
 
 
