@@ -1,57 +1,84 @@
 #!/bin/bash
 
-if [ $# -ne 1 ]; then
-	echo "Function Pointer Eliminator for C"
-    echo "Usage: ./fpe.sh <project-dir>"
-	echo "This executes: "
-	echo "(1) creates allfiles.bc by compiling all .c files under <project-dir> with clang"
-	echo "(2) analyzes allfiles.bc by the driver program"	
-    exit
-fi
-
 FPEdir=`pwd`
-PROJECT=$(cd $1 && pwd) # to get the full path of $1
-
 SVFdir="$FPEdir/SVF"
 ANALYZER="$FPEdir/analyzer"
 WPA="$SVFdir/Release-build/bin/wpa"
 
+function message {
+	echo "FPE - Function Pointer Eliminator for C"
+	echo ""
+	echo "Usage: fpe.sh <dir> [options]"
+	echo "where <dir> contains C preprocessed files and sub directories."
+	echo ""
+	echo "Description:"		
+	echo "The command creates a new directory <dir>-fpe that contains"
+	echo "C files without function pointer calls in the same subdirectories."
+}
 
-if [ ! -d $PROJECT ]; then
+if [ $# -ne 1 ]
+then
+   message
+   exit
+fi
+
+PROJECT=$(cd $1 && pwd) # project (in full path)
+
+if [ ! -d $PROJECT ]
+then
 	echo "$PROJECT is not found"
 	exit
 fi
 
-echo "Enter $PROJECT"
-cd $PROJECT
+echo "Project directory"
+echo $PROJECT
+echo ""
 
-echo "DELETE old .bc files"
-rm -f *.bc
+BCFILES=`find $PROJECT -name '*\.bc'`
+if [ -n "$BCFILES" ]
+then
+	echo ">> Old bitcode files exist --> Delete"
+	for BCFILE in $BCFILES
+	do
+		rm -f $BCFILE
+	done
+	echo ">> Done"	
+fi
 
-echo "START: Making .bc files"
+echo ">> Begin: making bitcode files"
 for CFILE in `find $PROJECT -name '*.c'`
 do
 	echo "$CFILE"
 	BCFILE=${CFILE%.*}.bc
-	clang -c -fno-discard-value-names -emit-llvm $CFILE
-	llvm-dis $BCFILE
+	clang -c -fno-discard-value-names -emit-llvm $CFILE -o $BCFILE
+#	llvm-dis $BCFILE
 done;
-echo "FINISH: making .bc files"
+echo ">> End: making bitcode files"
 
-echo "START: linking .bc files"
-BCFILES=`find . -name '*.bc'`
-llvm-link $BCFILES -o allfiles.bc
+echo ">> Begin: linking bitcode files"
+BCFILES=`find $PROJECT -name '*\.bc'`
+echo $PROJECT/allfiles.bc
+cd $PROJECT
+llvm-link -o $PROJECT/allfiles.bc $BCFILES
+echo ">> End: linking bitcode files --> allfiles.bc is created"
+echo ""
 
-#$WPA -nander -dump-pag -dump-consG allfiles.bc
-$WPA -nander allfiles.bc
-$WPA -nander -dump-pag allfiles.bc
+echo ">> Begin: Function Pointer Analysis"
+# $WPA -nander allfiles.bc
+# $WPA -nander -dump-pag allfiles.bc
+echo $PROJECT/allfiles.bc
+time $ANALYZER $PROJECT/allfiles.bc 2>&1 | tee $PROJECT/fpe-output.json
+echo ">> End: Function Pointer Analysis"
 
-$WPA -ander -dump-callgraph allfiles.bc
-
-
-echo "FINISH: linking .bc files"			
-
-time $ANALYZER allfiles.bc 2>&1 | tee ${CFILE%.*}.json
-
+echo ">> Begin: Program Transformation"
+echo ">> Result files are put in $PROJECT-FPE"
 cd $FPEdir/slac
-time ./gen.sh $PROJECT ${CFILE%.*}.json
+echo $PROJECT
+echo $PROJECT/fpe-output.json
+time ./gen.sh $PROJECT $PROJECT/fpe-output.json
+echo ">> End: Program Transformation"
+
+echo ">> Finish"
+
+
+
