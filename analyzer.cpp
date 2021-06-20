@@ -608,7 +608,12 @@ std::string createFldOne(NK* nodekind)
 	  strTpName = getTypeName(tp);
 	  debugPeekString("createFldOne-2b:strTpName: ",strTpName);
 	}
-	else exit(1);
+	else
+	  {
+		cout << "Error: createFldOne: the following node is not bitcast\n";
+		peekValue(val);
+		exit(1);
+	  }
   debugPeekNode("createFldOne-3:nodekind->node: ", nodekind->node);
   debugPeekValue("createFldOne-3:nodekind->node->getValue(): ", nodekind->node->getValue());
   std::string fldName = nodekind->node->getValue()->getName().str();
@@ -694,7 +699,8 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
   // Checking: Skip if the tail-part contains a non-function node	  
   if( !fpPagNode->hasValue() )
 	{
-	  debugPeekString("mkJsonOneCall: ","fpcall with no Value! (fail)");
+	  // debugPeekString("mkJsonOneCall: ","fpcall with no Value! (fail)");
+	  cout << "mkJsonOneCall: fpcall with no Value! (fail)";
 	  exit(1);
 	}
   // Checking: Skip if the tail-part contains a non-function node	  
