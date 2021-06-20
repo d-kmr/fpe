@@ -178,7 +178,6 @@ let get_field_by_index (structures:(bytes * (VcpBase.Exp.t * VcpBase.Term.t) lis
       Not_found ->
 
       let st  = V.filter (fun k (_, v, _) ->
-                    VcpBase.Exp.pprint (fst (List.nth v i));
                     List.length v > i && is_prefix (VcpBase.Exp.toStr (fst (List.nth v i))) nm ) structures in
       let lst = V.bindings st in
       
