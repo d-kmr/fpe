@@ -297,7 +297,13 @@ PAGNode* getParentNode(PAGNode* node, PAGEdge::PEDGEK edgeKind)
 // If 'node' doesn't have a LOAD edge, this returns NULL
 std::vector<PAGNode*> getLoadDist(PAGNode* node)
 {
-  if(node == NULL) { cout << "getParentNode: NULL node\n"; exit(1); }
+  if(node == NULL)
+	{
+	  fprintf(stderr, "==============\n");
+	  fprintf(stderr, "getParentNode: NULL node\n");
+	  fprintf(stderr, "==============\n");
+	  exit(1);
+	}
   std::vector<PAGNode*> nodes;
   PAGEdge::PAGEdgeSetTy edgeItr = node->getOutgoingEdges(PAGEdge::Load); 
   for (auto edge = edgeItr.begin(), iend = edgeItr.end(); edge != iend; edge++)
@@ -464,7 +470,13 @@ std::string getPrevPointer(PAGNode* node)
 	} else
 	  if (castInst != NULL){
 		llvm::Type* tp = castInst->getSrcTy();
-		if (!tp->isPointerTy ()){ cout << "Unexpected type\n"; exit(1); }
+		if (!tp->isPointerTy ())
+		  {
+			fprintf(stderr, "==============\n");
+			fprintf(stderr, "Unexpected type\n");
+			fprintf(stderr, "==============\n");
+			exit(1);
+		  }
 		ptr = val->stripPointerCasts()->getName().str();
 	  }
   debugPeekString("getPrePointer-End: ", ptr); 
@@ -482,12 +494,20 @@ typedef struct NK {
 NK* nextGep(NK* nodekind, PAGNode* topNode)
 {
   debugPeekNode("nextGep-Begin: nodekind->node: ", nodekind->node);
-  if(topNode == NULL || topNode->getValue() == NULL){
-	cout << "nextGep: Unexpected topNode\n"; exit(1);
-  }
-  if(nodekind->node == NULL || nodekind->node->getValue() == NULL){
-	cout << "nextGep: Unexpected curNode\n"; exit(1);
-  }  
+  if(topNode == NULL || topNode->getValue() == NULL)
+	{
+	  fprintf(stderr, "==============\n");
+	  fprintf(stderr, "nextGep: Unexpected topNode\n");
+	  fprintf(stderr, "==============\n");
+	  exit(1);
+	}
+  if(nodekind->node == NULL || nodekind->node->getValue() == NULL)
+	{
+	  fprintf(stderr, "==============\n");
+	  fprintf(stderr, "nextGep: Unexpected curNode\n");
+	  fprintf(stderr, "==============\n");
+	  exit(1);
+	}  
   std::string topName = topNode->getValue()->getName().str();  
   std::string subgoal = nodekind->node->getValue()->getName().str();  
   bool ptrFlag = false;
@@ -498,10 +518,13 @@ NK* nextGep(NK* nodekind, PAGNode* topNode)
   
   while(true) // curNode is a gep-node or a load-node && subgoal = curName
 	{
-	  if(nodekind->node == NULL || nodekind->node->getValue() == NULL){
-		cout << "nextGep: Unexpected nodekind (in while)\n";
-		exit(1);
-	  }
+	  if(nodekind->node == NULL || nodekind->node->getValue() == NULL)
+		{
+		  fprintf(stderr, "==============\n");
+		  fprintf(stderr, "nextGep: Unexpected nodekind (in while)\n");
+		  fprintf(stderr, "==============\n");
+		  exit(1);
+		}
 	  debugPeekNode("nextGep-2:nodekind->node: ", nodekind->node);
 	  subgoal = getPrevPointer(nodekind->node);
 	  debugPeekNode("nextGep-3:nodekind->node: ", nodekind->node);
@@ -539,7 +562,13 @@ NK* nextGep(NK* nodekind, PAGNode* topNode)
 	  debugPeekNode("nextGep-8:nodekind->node: ", nodekind->node);
 	  for (auto edge = edgeItr.begin(), iend = edgeItr.end(); edge != iend; edge++)
 		{
-		  if(*edge == NULL) { cout << "Something unexpected happens!"; exit(1); }
+		  if(*edge == NULL)
+			{
+			  fprintf(stderr, "==============\n");
+			  fprintf(stderr, "Something unexpected happens!\n"); 
+			  fprintf(stderr, "==============\n");
+			  exit(1);
+			}
 		  PAGNode* dst = (*edge)->getDstNode();
 		  debugPeekNode("nextGep-9:nodekind->node: ", nodekind->node);
 		  if(subgoal == dst->getValue()->getName().str())
@@ -596,7 +625,9 @@ std::string createFldOne(NK* nodekind)
 			return(""); // just skip 
 		else
 		  {
-			cout << "createFldOne: unexpected type-1\n";
+			fprintf(stderr, "==============\n");
+			fprintf(stderr, "createFldOne: unexpected type-1\n");
+			fprintf(stderr, "==============\n");
 			exit(1);
 		  }
 	}
@@ -610,8 +641,10 @@ std::string createFldOne(NK* nodekind)
 	}
 	else
 	  {
-		cout << "Error: createFldOne: the following node is not bitcast\n";
+		fprintf(stderr, "==============\n");
+		fprintf(stderr, "Error: createFldOne: the following node is not bitcast\n");
 		peekValue(val);
+		fprintf(stderr, "==============\n");	  
 		exit(1);
 	  }
   debugPeekNode("createFldOne-3:nodekind->node: ", nodekind->node);
@@ -700,7 +733,10 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
   if( !fpPagNode->hasValue() )
 	{
 	  // debugPeekString("mkJsonOneCall: ","fpcall with no Value! (fail)");
-	  cout << "mkJsonOneCall: fpcall with no Value! (fail)";
+	  std::string topName = getTopNode(fpNode)->getValue()->getName().str();
+	  fprintf(stderr, "==============\n");
+	  fprintf(stderr, "mkJsonOneCall: fpcall of %s has no Value (fail)\n", topName.c_str());
+	  fprintf(stderr, "==============\n");	  
 	  exit(1);
 	}
   // Checking: Skip if the tail-part contains a non-function node	  
@@ -724,7 +760,13 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
   // Getting Top-level node
   FPkind topKind = NoInfo;
   PAGNode* topNode = getTopNode(fpNode);
-  if(topNode == NULL) { cout << "No TopNode\n"; exit(1); }
+  if(topNode == NULL)
+	{
+	  fprintf(stderr, "==============\n");
+	  fprintf(stderr, "No TopNode\n");
+	  fprintf(stderr, "==============\n");
+	  exit(1);
+	}
   std::string topName = topNode->getValue()->getName().str();
   NodeKind topNodeKind = checkNodeKind(topNode);
   debugPeekNode("mkJsonOneCall: topNode: ", topNode);
