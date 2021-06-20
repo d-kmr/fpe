@@ -84,7 +84,7 @@ echo ">> Begin: Program Transformation"
 cd $FPEdir/slac
 echo $PROJECT
 echo $PROJECT/fpe-output.json
-time ./gen.sh $PROJECT $PROJECT/fpe-output.json
+time ./gen.sh $PROJECT $PROJECT/fpe-output.json || myFail
 echo ">> End: Program Transformation"
 echo ">> Output results: $PROJECT-FPE"
 echo "---------"

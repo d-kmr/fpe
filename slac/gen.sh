@@ -29,7 +29,7 @@ END=${#PROJECT}+1
 Error(){
 		rm -r "$FPEDIR"
 		echo "Transformation failed"
-		exit
+		exit 1
 }
 
 Transform(){
