@@ -161,7 +161,6 @@ let rec get_ptr_fields = function
 ;;
 
 let get_field_by_index (structures:(bytes * (VcpBase.Exp.t * VcpBase.Term.t) list * VcpBase.Exp.t list option) V.t) (i, tp, nm) =
-  
   let is_prefix a b =
     let l = Bytes.length a in
     if l <= Bytes.length b then
@@ -177,9 +176,12 @@ let get_field_by_index (structures:(bytes * (VcpBase.Exp.t * VcpBase.Term.t) lis
       V.find (sanitize_tp tp) structures
     with
       Not_found ->
+
       let st  = V.filter (fun k (_, v, _) ->
+                    VcpBase.Exp.pprint (fst (List.nth v i));
                     List.length v > i && is_prefix (VcpBase.Exp.toStr (fst (List.nth v i))) nm ) structures in
       let lst = V.bindings st in
+      
       if V.cardinal st = 1 then
         snd (List.hd lst)
       else
@@ -208,7 +210,7 @@ let pp_st structures =
 
 
 let get_fld_fp structures fpdata expression =
- 
+  
   let (ptr, flds) = get_ptr_fields expression in
   match ptr with
     Some ptr ->
@@ -985,9 +987,10 @@ let fp_transform_function fpdata fname structures block =
       let block' = try
           transform_block structures fpdata' block
         with
-          Not_found ->
+          (* Not_found ->
           pn ("Not found in Function " ^ fname);
-          raise Not_found
+          raise Not_found *)
+          _ -> exit(1)
       in
       (* pn "====>"; 
       Cprint.print_block block'; *) 

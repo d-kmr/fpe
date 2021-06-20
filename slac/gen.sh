@@ -26,6 +26,11 @@ FPEDIR="${PROJECT}-FPE/"
 
 END=${#PROJECT}+1
 
+Error(){
+		rm -r "$FPEDIR"
+		echo "Transformation failed"
+		exit
+}
 
 Transform(){
 		CURDIR=$1
@@ -37,8 +42,8 @@ Transform(){
 		do
 				FILE=${i:${#ABSDIR}}
 				DEST="$NEWDIR$FILE"
-				./fpe-parser "$i" "${DEST}abs" "$FILE"
-				./fpe-unit "${DEST}abs" "$FPJSON" > "${DEST}"
+				./fpe-parser "$i" "${DEST}abs" "$FILE" || Error ""
+				./fpe-unit "${DEST}abs" "$FPJSON" > "${DEST}" 2> "${PROJECT}/fpe-error.log" || Error ""
 				rm "${DEST}abs"
 		done
 
