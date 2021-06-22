@@ -19,8 +19,6 @@ Function Pointer Eliminator
 1. git clone https://github.com/d-kmr/fpe.git
 2. cd fpe
 3. ./fpebuild make
-4. cd slac
-5. make
 
 [Use]
 - ./fpe <C-Project-Directory>
