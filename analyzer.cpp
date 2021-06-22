@@ -1,7 +1,5 @@
-/*
-Analyzer module of FPE
-*/
-
+// Analyzer module of FPE
+// Daisuke Kimura and Mahmudul Faisal Al Ameen, 2021 ©
 
 #include "SVF-FE/LLVMUtil.h"
 #include "Graphs/SVFG.h"
