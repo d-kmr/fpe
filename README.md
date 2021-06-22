@@ -22,3 +22,5 @@ Function Pointer Eliminator
 
 [Use]
 - ./fpe <C-Project-Directory>
+
+Daisuke Kimura and Mahmudul Faisal Al Ameen, 2021 ©
