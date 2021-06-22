@@ -1,4 +1,6 @@
 #!/bin/bash
+# fpe : Function Pointer Eliminator for C
+# Daisuke Kimura and Mahmudul Faisal Al Ameen, 2021 ©
 
 FPEdir=`pwd`
 SVFdir="$FPEdir/SVF"

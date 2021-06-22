@@ -1,4 +1,6 @@
 #!/bin/bash
+# fpe building script
+# Daisuke Kimura and Mahmudul Faisal Al Ameen, 2021 ©
 
 FPEdir=$(pwd)
 sysOS=`uname -s`

@@ -815,12 +815,13 @@ int main(int argc, char ** argv)
 {
   debugPeekString("Main starts","");
   // argment processing for SVF
+
   int arg_num = 0;
   char** arg_value = new char*[argc];
   std::vector<std::string> moduleNameVec;
   SVFUtil::processArguments(argc, argv, arg_num, arg_value, moduleNameVec);
   SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
-  
+
   /// Build Program Assignment Graph (PAG)
   PAGBuilder builder;
   PAG* pag = builder.build(svfModule);
@@ -837,12 +838,13 @@ int main(int argc, char ** argv)
 	  std::string s = mkJsonOneCall(fpNodeID, pag, ander);
 	  if(s != "continue") jsonResult.push_back(s);
 	}
-  
+
   std::string jsonOutput = "[\n" + stringVector(jsonResult,_None,_None,_CommaNewLine,_NewLine) + "]\n";  
   cout << jsonOutput;
 
   delete ander;
   delete pag;    
-  delete svfModule;  
+  delete svfModule;
+
   return 0;
 }
