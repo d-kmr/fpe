@@ -23,17 +23,6 @@ let theMain () =
     begin
       let slacDataDir = Sys.argv.(1) in
       let translatedDir = S.get_translated_dir slacDataDir in
-      let fpaDir = S.get_fpa_dir slacDataDir in
-      let fpaFundefDir = S.get_fpa_fundef_dir fpaDir in
-      let fpaGlobalDataDir = S.get_fpa_global_data_dir fpaDir in
-      let fpaProfileDir = S.get_fpa_profile_dir fpaDir in
-      checkDirectory slacDataDir;
-      checkDirectory translatedDir;
-      checkDirectory fpaDir;
-      checkDirectory fpaFundefDir;
-      checkDirectory fpaGlobalDataDir;
-      checkDirectory fpaProfileDir;
-      
       let srcfile = Sys.argv.(2) in
       let module_id_s = Sys.argv.(3) in
       let module_id = int_of_string module_id_s in
@@ -69,9 +58,6 @@ let theMain () =
       let ssrc = flatten_path prefix in
 
       let ffile = translatedDir ^ "/" ^ flattenpath in
-      let fpaFunDefFile = fpaFundefDir ^ "/" ^ module_id_s in
-      let fpaGlobalDataFile = fpaGlobalDataDir ^ "/" ^ module_id_s in
-
       (* pn ("Prefix: " ^ ssrc); *)
       cfunc.contents <- ssrc;
 
@@ -131,20 +117,7 @@ let theMain () =
       pn_s "DONES" "Translation is done";
       if not !is_tr_only then
         begin
-          let (_Kdata,_KfundefL) = ConvFtoK.fp_preAnalyze_a_module _Fmod module_id in
-
-          write_file fpaGlobalDataFile (module_id,srcfile,_Kdata);
-          write_file fpaFunDefFile (module_id,srcfile,_KfundefL);
           
-          (* let fout = open_out (translatedDir ^ "/" ^ flattenpath) in
-      Marshal.to_channel fout (arg_i, kfile, _Fmod, _Kdata) [];
-      close_out fout; *)
-
-
-          (* let kmod = open_out kfile in
-      Marshal.to_channel kmod (arg_i, _Kmod) [];
-      close_out kmod; *)
-
           (* print_endline ("END: " ^ flattenpath); print_newline (); *)
           (* print_gc (Gc.stat ()); *)
           exit(0)

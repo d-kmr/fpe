@@ -1,6 +1,15 @@
 #!/bin/bash
+#////////////////////////////////////////////////
 # fpe building script
 # Daisuke Kimura and Mahmudul Faisal Al Ameen, 2021 ©
+#
+# type './fpebuild make'   : build the whole system + installing SVF and LLVM
+# type './fpebuild remake' : clean and build (mainly for clean installing of SVF)
+# type './fpebuild clean'  : clean
+#
+# Note:
+# if the LLVM_DIR variable is not set, LLVM will be downloaded.
+#////////////////////////////////////////////////
 
 FPEdir=$(pwd)
 sysOS=`uname -s`
@@ -27,7 +36,6 @@ function cleaning(){
 	echo "Done"
 }
 
-
 if [ $# = 0 ] 
 then
 	message
@@ -38,13 +46,15 @@ then
 	message
 fi   
 
-if [ $1 = "clean" ] || [ $1 = "remake" ]
+if [ $1 = "clean" ]
 then
 	cleaning
-	if [ $1 = "clean" ]
-	then
-		exit
-	fi
+	exit
+fi
+
+if [ $1 = "remake" ]
+then
+	cleaning
 fi
 
 echo "SVF checking ..."
@@ -72,7 +82,7 @@ then
 fi
 echo ""
 
-# Analyzer building
+# building Analyzer 
 echo "Start building analyzer"
 echo "cd fpe"
 cd $FPEdir
@@ -86,16 +96,16 @@ LLVMlib="$LLVM_DIR/lib"
 echo "LLVM_DIR = $LLVM_DIR"
 echo "LLVMinclude = $LLVMinclude"
 echo "SVFheader = $SVFheader"
-# -fsanitize=address -fno-omit-frame-pointer 
+
 g++ -g -I$LLVMinclude -I$SVFheader -fPIC -std=gnu++14 -O3 -fno-rtti -Wno-deprecated -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o analyzer.o -c analyzer.cpp
 
 g++ -g -fPIC -std=gnu++14 -O3 -fno-rtti -Wno-deprecated analyzer.o -o $Analyzer $SVFlib/libSvf.a $SVFlib/CUDD/libCudd.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMipo.a $LLVMlib/libLLVMIRReader.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMInstrumentation.a $LLVMlib/libLLVMTarget.a $LLVMlib/libLLVMLinker.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMScalarOpts.a $LLVMlib/libLLVMSupport.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMAsmParser.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMAggressiveInstCombine.a $LLVMlib/libLLVMVectorize.a $LLVMlib/libLLVMTransformUtils.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMObject.a $LLVMlib/libLLVMBitReader.a $LLVMlib/libLLVMMCParser.a $LLVMlib/libLLVMTextAPI.a $LLVMlib/libLLVMProfileData.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMRemarks.a $LLVMlib/libLLVMBitstreamReader.a $LLVMlib/libLLVMMC.a $LLVMlib/libLLVMBinaryFormat.a $LLVMlib/libLLVMDebugInfoCodeView.a $LLVMlib/libLLVMDebugInfoMSF.a $LLVMlib/libLLVMSupport.a -lrt -ldl -ltinfo -lpthread -lz -lm $LLVMlib/libLLVMDemangle.a 
-echo "Finished building analyzer"
+echo "Finish building analyzer"
 
+# building Transformer
 echo ""
 echo "Start building transformer"
 cd $FPEdir/slac
 make
 echo "Finished building transformer"
-
 cd $FPEdir

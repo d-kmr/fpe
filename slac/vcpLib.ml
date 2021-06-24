@@ -19,9 +19,6 @@ type t = string * string * Exp.attr list * (Exp.t * Block.t list * Block.t)
 (*
 type d = (Fp.Analyzer.t * Fp.FPstate.t * Fp.FPstate.t)
  *)
-module MyFp = Fp3
-type d = (MyFp.GlobalInfo.t * MyFp.FPstate.t * MyFp.FPstate.t)
-
 
 let get_unique_func proc mod_name =
   (* if proc = "main" then

@@ -34,13 +34,7 @@ module Kprogram = Csyntax.Program
 module Kstructure = Csyntax.Structure
 module Kmodule = Csyntax.Module
 module Klocs = Csyntax.Locs
-module MyFp = Fp3
-module MyFpsyntax = Fpsyntax3          
-module FPsh = MyFpsyntax.StoreHeap
-module FpPos = MyFp.FpPos
-module FPstate = MyFpsyntax.State
-module FPval = MyFpsyntax.Val
-               
+             
 (* overwriting of print_... in tools.ml *)
 let print_warn tag mes = Ftools.pf_s "FPAwarn" print_endline ("[W " ^ tag ^ "] " ^ mes)
   
@@ -1276,56 +1270,4 @@ let manual_input filename =
   let input_str = my_read_file filename in
   let miFile =  Manualinput.parse input_str in
   ConvKtoF.of_MIfile miFile 
-;;
-  
-(*---------------------------*)  
-(* function pointer analysis *)
-(*---------------------------*)
-
-let fp_preAnalyze_a_module (fmodule: VcpAllC.t) mod_id : MyFp.kdata * Kprogram.t =
-  let kmodule = ConvFCtoKC.of_module fmodule in
-  let (mod_name,_,_,_,fundefL) = kmodule in
-  print_mes "PRE" ("Pre-Analysis of " ^ mod_name ^ " begins");
-  Ftools.pf_s "FPAdebug" print_endline "-----------------------";
-  Ftools.pf_s "FPAdebug" Fmodule.pprint fmodule;
-  Ftools.pf_s "FPAdebug" print_endline "-----------------------";
-  Ftools.pf_s "FPAdebug" Kmodule.println kmodule;
-  Ftools.pf_s "FPAdebug" print_endline "-----------------------";
-  
-  (* PreAnalysis *)
-  let kdata = MyFp.preAnalyze_a_module kmodule mod_id in
-  print_mes "PRE" ("Pre-Analysis of " ^ mod_name ^ " ends");
-  (kdata,fundefL)
-;;
-
-let fp_top_level slacDataDir fname sp_tm =
-
-  let gt3 = Sys.time () in  
-  let (r,funpos) = MyFp.mainAnalysis slacDataDir fname sp_tm in
-  let gt4 = Sys.time () in
-  (* output = [(fname1,fp1,pos1,fnameL1);(fname2,fp2,pos2,fnameL2)] *)
-  let output : ((bytes * bytes * int) * bytes list) list = FpPos.toOutput funpos in
-  
-  match r with
-  | MyFp.FPstate.None ->
-     X.dbg "GC" "After Conversion:" X.print_gc (Gc.stat ());
-     let sh_dummy = FPsh.dummy in
-     (sh_dummy,output)
-  | MyFp.FPstate.SH sh ->
-     let (s,h) = sh in
-     X.dbg "GC" "After FPA main:" X.print_gc (Gc.stat ());
-     Ftools.pf_s "FPAresult" print_endline "";
-     Ftools.pf_s "FPAresult" print_endline ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-     print_endline @@ "Missing functions";
-     print_endline @@ (string_of_list (fun x->x) " " MyFp.az.MyFp.Analyzer.missingFunlist);
-     Ftools.pf_s "FPAresult" print_endline ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>";     
-     Ftools.pf_s "FPAresult" print_string' "[s_fp]\n";
-     Ftools.pf_s "FPAresult" FPsh.println_s_fp s;
-     Ftools.pf_s "FPAresult" print_string' "\n[s_fppos]\n";
-     Ftools.pf_s "FPAresult" FpPos.println funpos;
-     Ftools.pf_s "FPAresult" print_endline ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-     print_endline @@ "Missing FP: " ^ (string_of_int MyFp.gi.MyFp.GlobalInfo.missingFP);
-     print_endline ("Main FPA time:" ^ (string_of_float (gt4-.gt3)));
-     Ftools.pf_s "FPAresult" print_endline ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-     (sh,output)
 ;;
