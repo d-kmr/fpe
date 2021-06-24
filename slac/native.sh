@@ -2,11 +2,11 @@
 
 set OCAMLLIBS = "nums.cmxa unix.cmxa z3ml.cmxa"
 set LIBDIR = "lib"
-set SOURCES = "ftools.ml mymem.ml vcpBase.ml bignum.ml smtsyntax.ml smttoz3.ml sltosmt.ml satcheck.ml interval.ml entlcheckA.ml biabdls.ml biabd.ml vcpExtract.ml ctransformOptions.ml ctransform.ml csyntax.ml vcpFpOnC.ml vcpTranslate.ml vcpElements.ml vcpDep.ml vcpAllC.ml convFtoK.ml vcpVBase.ml vcpBuiltIn.ml vcpPrecond2.ml vcpLib.ml"
+set SOURCES = "ftools.ml vcpBase.ml bignum.ml smtsyntax.ml smttoz3.ml sltosmt.ml satcheck.ml interval.ml entlcheckA.ml biabdls.ml biabd.ml vcpExtract.ml ctransformOptions.ml ctransform.ml csyntax.ml vcpFpOnC.ml vcpTranslate.ml vcpElements.ml vcpDep.ml vcpAllC.ml convFtoK.ml vcpVBase.ml vcpBuiltIn.ml vcpPrecond2.ml vcpLib.ml"
 set TRANS = "ftools.ml vcpBase.ml bignum.ml vcpExtract.ml ctransformOptions.ml ctransform.ml vcpFpOnC.ml vcpTranslate.ml csyntax.ml vcpElements.ml vcpAllC.ml"
 set TRANSCMXS = "ftools.cmx vcpBase.cmx bignum.cmx vcpExtract.cmx ctransformOptions.cmx ctransform.cmx vcpFpOnC.cmx vcpTranslate.cmx csyntax.cmx vcpElements.cmx vcpAllC.cmx"
 set UCMXS = "pretty.cmx cabs.cmx errormsg.cmx longarray.cmx growArray.cmx cabshelper.cmx lexerhack.cmx escape.cmx whitetrack.cmx cprint.cmx stats.cmx cparser.cmx clexer.cmx frontc.cmx tools.cmx slsyntax.cmx manualinput_lexer.cmx manualinput_parser.cmx manualinput.cmx"
-set CMXS = "ftools.cmx mymem.cmx vcpBase.cmx bignum.cmx smtsyntax.cmx smttoz3.cmx sltosmt.cmx satcheck.cmx interval.cmx entlcheckA.cmx biabdls.cmx biabd.cmx vcpExtract.cmx ctransformOptions.cmx ctransform.cmx vcpFpOnC.cmx vcpTranslate.cmx vcpElements.cmx csyntax.cmx vcpDep.cmx vcpAllC.cmx convFtoK.cmx vcpVBase.cmx vcpBuiltIn.cmx vcpPrecond2.cmx vcpLib.cmx"
+set CMXS = "ftools.cmx vcpBase.cmx bignum.cmx smtsyntax.cmx smttoz3.cmx sltosmt.cmx satcheck.cmx interval.cmx entlcheckA.cmx biabdls.cmx biabd.cmx vcpExtract.cmx ctransformOptions.cmx ctransform.cmx vcpFpOnC.cmx vcpTranslate.cmx vcpElements.cmx csyntax.cmx vcpDep.cmx vcpAllC.cmx convFtoK.cmx vcpVBase.cmx vcpBuiltIn.cmx vcpPrecond2.cmx vcpLib.cmx"
 set CMIS = "tools.cmi bignum.cmi ctransformOptions.ml ctransform.ml slsyntax.cmi smtsyntax.cmi smttoz3.cmi interval.cmi manualinput.cmi"
 set TARGET = "slac.native"
 

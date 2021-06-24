@@ -1,4 +1,4 @@
-all:
+lall:
 	./native.sh
 
 clean:
