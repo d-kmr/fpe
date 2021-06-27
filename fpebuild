@@ -20,11 +20,13 @@ SVFlib="$SVFdir/Release-build/lib"
 Analyzer="analyzer"
 
 function message(){
-	echo "Usage: fpebuild [make|remake|clean]"
+	echo "Usage: fpebuild [options]"
 	echo "[Options]"
-	echo "make  : compile fpe installing SVF"
-	echo "remake: clean all and recompile fpe and SVF"	
-	echo "clean : delete SVF directory and other object files"
+	echo "make             : compile fpe installing SVF"
+	echo "make analyzer    : compile only analyzer"
+	echo "make transformer : compile only transformer"	
+	echo "remake           : clean all and recompile fpe and SVF"	
+	echo "clean            : delete SVF directory and other object files"
 	exit
 }
 
@@ -82,30 +84,45 @@ then
 fi
 echo ""
 
-# building Analyzer 
-echo "Start building analyzer"
-echo "cd fpe"
-cd $FPEdir
-if [[ $LLVM_DIR = "" ]]
-then
-	LLVM_DIR="$SVFdir/llvm-12.0.0.obj"
-	echo "Please add $SVFdir/llvm-12.0.0.obj to PATH"
-fi   
-LLVMinclude="$LLVM_DIR/include"
-LLVMlib="$LLVM_DIR/lib"
-echo "LLVM_DIR = $LLVM_DIR"
-echo "LLVMinclude = $LLVMinclude"
-echo "SVFheader = $SVFheader"
+# building Analyzer
+function buildAnalyzer() {
+	echo "Start building analyzer"
+	echo "cd fpe"
+	cd $FPEdir
+	if [[ $LLVM_DIR = "" ]]
+	then
+		LLVM_DIR="$SVFdir/llvm-12.0.0.obj"
+		echo "Please add $SVFdir/llvm-12.0.0.obj to PATH"
+	fi   
+	LLVMinclude="$LLVM_DIR/include"
+	LLVMlib="$LLVM_DIR/lib"
+	echo "LLVM_DIR = $LLVM_DIR"
+	echo "LLVMinclude = $LLVMinclude"
+	echo "SVFheader = $SVFheader"
 
-g++ -g -I$LLVMinclude -I$SVFheader -fPIC -std=gnu++14 -O3 -fno-rtti -Wno-deprecated -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o analyzer.o -c analyzer.cpp
+	g++ -g -I$LLVMinclude -I$SVFheader -fPIC -std=gnu++14 -O3 -fno-rtti -Wno-deprecated -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o analyzer.o -c analyzer.cpp
 
-g++ -g -fPIC -std=gnu++14 -O3 -fno-rtti -Wno-deprecated analyzer.o -o $Analyzer $SVFlib/libSvf.a $SVFlib/CUDD/libCudd.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMipo.a $LLVMlib/libLLVMIRReader.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMInstrumentation.a $LLVMlib/libLLVMTarget.a $LLVMlib/libLLVMLinker.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMScalarOpts.a $LLVMlib/libLLVMSupport.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMAsmParser.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMAggressiveInstCombine.a $LLVMlib/libLLVMVectorize.a $LLVMlib/libLLVMTransformUtils.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMObject.a $LLVMlib/libLLVMBitReader.a $LLVMlib/libLLVMMCParser.a $LLVMlib/libLLVMTextAPI.a $LLVMlib/libLLVMProfileData.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMRemarks.a $LLVMlib/libLLVMBitstreamReader.a $LLVMlib/libLLVMMC.a $LLVMlib/libLLVMBinaryFormat.a $LLVMlib/libLLVMDebugInfoCodeView.a $LLVMlib/libLLVMDebugInfoMSF.a $LLVMlib/libLLVMSupport.a -lrt -ldl -ltinfo -lpthread -lz -lm $LLVMlib/libLLVMDemangle.a 
-echo "Finish building analyzer"
-
+	g++ -g -fPIC -std=gnu++14 -O3 -fno-rtti -Wno-deprecated analyzer.o -o $Analyzer $SVFlib/libSvf.a $SVFlib/CUDD/libCudd.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMipo.a $LLVMlib/libLLVMIRReader.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMInstrumentation.a $LLVMlib/libLLVMTarget.a $LLVMlib/libLLVMLinker.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMScalarOpts.a $LLVMlib/libLLVMSupport.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMAsmParser.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMAggressiveInstCombine.a $LLVMlib/libLLVMVectorize.a $LLVMlib/libLLVMTransformUtils.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMObject.a $LLVMlib/libLLVMBitReader.a $LLVMlib/libLLVMMCParser.a $LLVMlib/libLLVMTextAPI.a $LLVMlib/libLLVMProfileData.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMRemarks.a $LLVMlib/libLLVMBitstreamReader.a $LLVMlib/libLLVMMC.a $LLVMlib/libLLVMBinaryFormat.a $LLVMlib/libLLVMDebugInfoCodeView.a $LLVMlib/libLLVMDebugInfoMSF.a $LLVMlib/libLLVMSupport.a -lrt -ldl -ltinfo -lpthread -lz -lm $LLVMlib/libLLVMDemangle.a 
+	echo "Finish building analyzer"
+}
+	
 # building Transformer
-echo ""
-echo "Start building transformer"
-cd $FPEdir/slac
-make
-echo "Finished building transformer"
-cd $FPEdir
+function buildTransformer() {
+	echo ""
+	echo "Start building transformer"
+	cd $FPEdir/slac
+	make
+	echo "Finished building transformer"
+	cd $FPEdir
+}
+
+if [[ $2 != "transformer" ]]
+then
+	buildAnalyzer
+fi
+
+if [[ $2 != "analyzer" ]]
+then
+	buildTransformer
+fi
+

@@ -6,16 +6,19 @@ FPEdir=`pwd`
 SVFdir="$FPEdir/SVF"
 ANALYZER="$FPEdir/analyzer"
 WPA="$SVFdir/Release-build/bin/wpa"
+OPTION=$2
 
 function myMessage {
 	echo "FPE - Function Pointer Eliminator for C"
 	echo ""
-	echo "Usage: fpe <dir> [options]"
+	echo "Usage: fpe <dir>"
 	echo "where <dir> contains C preprocessed files and sub directories."
 	echo ""
 	echo "Description:"		
 	echo "The command creates a new directory <dir>-fpe that contains"
 	echo "C files without function pointer calls in the same subdirectories."
+	echo ""
+	echo "Copyright:"
 	echo "Daisuke Kimura and Mahmudul Faisal Al Ameen, 2021 ©"
 }
 
@@ -25,10 +28,16 @@ function myFail {
 	exit
 }
 
-if [ $# -ne 1 ]
+if [ $# -eq 0 ] || [ $# -gt 2 ]
 then
-   myMessage
-   exit
+	myMessage
+	exit
+fi
+
+if [ $# -eq 2 ] && [ $OPTION != "debug" ]
+then
+	myMessage
+	exit
 fi
 
 PROJECT=$(cd $1 && pwd) # project (in full path)
@@ -73,13 +82,21 @@ echo ">> End: linking bitcode files --> allfiles.bc is created"
 echo ""
 
 echo ">> Begin: Function Pointer Analysis"
-# $WPA -nander allfiles.bc
-# $WPA -nander -dump-pag allfiles.bc
 echo $PROJECT/allfiles.bc
+
 function execAnalyzer {
-	#	time $ANALYZER $PROJECT/allfiles.bc 2>&1 | tee $PROJECT/fpe-output.json
-	$ANALYZER $PROJECT/allfiles.bc > $PROJECT/fpe-output.json	
+	if [[ $OPTION != "debug" ]]
+	then
+		#	time $ANALYZER $PROJECT/allfiles.bc 2>&1 | tee $PROJECT/fpe-output.json		
+		$ANALYZER $PROJECT/allfiles.bc > $PROJECT/fpe-output.json
+	else
+		echo "exec analyzer in debugging mode"
+		$WPA -nander allfiles.bc
+		$WPA -nander -dump-pag allfiles.bc
+		$ANALYZER $PROJECT/allfiles.bc > $PROJECT/fpe-output.json  --debug
+	fi
 }
+
 time execAnalyzer || myFail
 echo ">> End: Function Pointer Analysis"
 
