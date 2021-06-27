@@ -21,6 +21,6 @@ Function Pointer Eliminator
 3. ./fpebuild make
 
 [Use]
-- ./fpe <C-Project-Directory>
+- ./fpe \<C-Project-Directory\>
 
 Daisuke Kimura and Mahmudul Faisal Al Ameen, 2021 ©
