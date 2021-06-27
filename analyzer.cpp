@@ -44,6 +44,20 @@ void peekType(const llvm::Type* tp)
 void peekValue(const llvm::Value *val)
 {
   if (val == NULL){ cout << "It's NULL!\n"; return; }
+  if (dyn_cast<Argument>(val) != NULL)			{ cerr << "It's Argument\n"; }
+  if (dyn_cast<BasicBlock>(val) != NULL)		{ cerr << "It's BasicBlock\n"; }
+  if (dyn_cast<InlineAsm>(val) != NULL)			{ cerr << "It's InlineAsm\n"; }
+  if (dyn_cast<MetadataAsValue>(val) != NULL)	{ cerr << "It's MetadataAsValue\n"; }
+  if (dyn_cast<BlockAddress>(val) != NULL)		{ cerr << "It's BlockAddress\n"; }
+  if (dyn_cast<ConstantAggregate>(val) != NULL)	{ cerr << "It's ConstantAggregate\n"; }
+  if (dyn_cast<ConstantData>(val) != NULL)		{ cerr << "It's ConstantData\n"; }
+  if (dyn_cast<ConstantExpr>(val) != NULL)		{ cerr << "It's ConstantExpr\n"; }
+  //  if (dyn_cast<DSOLocalEquivalent>(val) != NULL){ cerr << "It's DSOLocalEquivalent\n"; }
+  if (dyn_cast<GlobalValue>(val) != NULL)		{ cerr << "It's GlobalValue\n"; }
+  //  if (dyn_cast<DerivedUser>(val) != NULL)		{ cerr << "It's DerivedUser\n"; }
+  if (dyn_cast<Instruction>(val) != NULL)		{ cerr << "It's Instruction\n"; }
+  if (dyn_cast<Operator>(val) != NULL)			{ cerr << "It's Operator\n"; }  
+
   std::string str;
   raw_string_ostream rawstr(str);
   val->print(rawstr);
@@ -378,9 +392,13 @@ NodeKind checkNodeKind(PAGNode* node)
   if (node == NULL) return (UNKNOWN);
   const llvm::Value* val = (node->getValue());
   const llvm::AllocaInst* allocaInst = dyn_cast<AllocaInst>(val);
-  if (allocaInst == NULL) return (UNKNOWN);
-  const Type* tp = allocaInst->getAllocatedType();
-
+  const llvm::GlobalValue* globalValue = dyn_cast<GlobalValue>(val);
+  const Type* tp;
+  
+  if (allocaInst == NULL && globalValue == NULL) return (UNKNOWN);
+  if (allocaInst != NULL) tp = allocaInst->getAllocatedType();
+  if (globalValue != NULL) tp = globalValue->getValueType();
+  
   if(tp->isStructTy()) return (STRUCT);
   if(tp->isArrayTy()) return (ARR);
   
