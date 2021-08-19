@@ -196,7 +196,7 @@ let get_field_by_index (structures:(bytes * (VcpBase.Exp.t * VcpBase.Term.t) lis
   let r = VcpBase.Exp.toStr fld in
   r
 ;;
-;;
+
 
 let pp_st structures =
   V.iter (fun k (_,flds,_) ->
@@ -209,7 +209,7 @@ let pp_st structures =
 
 
 let get_fld_fp structures fpdata expression =
-  
+
   let (ptr, flds) = get_ptr_fields expression in
   match ptr with
     Some ptr ->
