@@ -557,7 +557,7 @@ and print_expression_level (lvl: int) (exp : expression) =
       printl ["->";fld]
   | GNU_BODY (blk) ->
       print "(";
-      print_block blk;
+      print_block ~forced_paren:true blk;
       print ")"
   | EXPR_PATTERN (name) ->
       printl ["@expr";"(";name;")"]
@@ -721,19 +721,19 @@ and print_statement stat =
   | TRY_FINALLY (b, h, loc) -> 
       setLoc loc;
       print "__try ";
-      print_block b;
+      print_block ~forced_paren:true b;
       print "__finally ";
-      print_block h
+      print_block ~forced_paren:true h
 
   | TRY_EXCEPT (b, e, h, loc) -> 
       setLoc loc;
       print "__try ";
-      print_block b;
+      print_block ~forced_paren:true b;
       printl ["__except";"("]; print_expression e; print ")";
-      print_block h
+      print_block ~forced_paren:true h
       
-and print_block blk = 
-  if List.length blk.bstmts = 1 then
+and print_block ?(forced_paren=false) blk =
+  if List.length blk.bstmts = 1 && not forced_paren then
     begin
       new_line();
       
@@ -846,7 +846,7 @@ and print_def def =
       end;
       setLoc(loc);
       print_single_name proto;
-      print_block body;
+      print_block ~forced_paren:true body;
       force_new_line ();
 
   | DECDEF (names, loc) -> (** declarations *)
