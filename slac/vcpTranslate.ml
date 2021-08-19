@@ -6356,7 +6356,7 @@ module Global = struct
   (* let total = ref 0;; *)
     
   (** ptr_struct: (structure type, belongs to the structure, field name) *)
-  let rec translate acc pointers (sofar_structures : Structure.t V.t) (ptr_struct : (bytes * bytes * Exp.t list) list) procs struct_map fvs fpdata = function
+  let rec translate ?(dummy=false) acc pointers (sofar_structures : Structure.t V.t) (ptr_struct : (bytes * bytes * Exp.t list) list) procs struct_map fvs fpdata = function
     | [] -> acc
     | x::_xs ->
        dbg "DT1" "Translating...: " Cprint.print_def x;
@@ -6380,7 +6380,7 @@ module Global = struct
           if Structure.exists sofar_structures a' then
             begin
               pn_s "STRUCTURE" "@UNION EXISTS";
-              translate acc pointers sofar_structures ptr_struct procs struct_map fvs fpdata (d2::_xs)
+              translate ~dummy:true acc pointers sofar_structures ptr_struct procs struct_map fvs fpdata (d2::_xs)
             end
           else
             begin
@@ -6397,7 +6397,7 @@ module Global = struct
 
           pn_s "STRUCTURE" ("@TYPEDEF ENUM " ^ a ^ " ...");
           
-          translate acc pointers sofar_structures ptr_struct procs struct_map fvs fpdata (d1::_xs)
+          translate ~dummy:true acc pointers sofar_structures ptr_struct procs struct_map fvs fpdata (d1::_xs)
           
        | C.TYPEDEF ((C.SpecTypedef::(C.SpecType (C.Tstruct (a,b,c)))::_,z), locs) when not (b=None) ->
           (** typedef struct X {...} x; *)
@@ -6415,12 +6415,12 @@ module Global = struct
           if Structure.exists sofar_structures a' then
             begin
               pn_s "STRUCTURE" "@STRUCT EXISTS";
-              translate acc pointers sofar_structures ptr_struct procs struct_map fvs fpdata (d2::_xs)
+              translate ~dummy:true acc pointers sofar_structures ptr_struct procs struct_map fvs fpdata (d2::_xs)
             end
           else
             begin
               pn_s "STRUCTURE" "@STRUCT DOESN'T EXISTS";
-              translate acc pointers sofar_structures ptr_struct procs struct_map fvs fpdata (d1::d2::_xs)
+              translate ~dummy:true acc pointers sofar_structures ptr_struct procs struct_map fvs fpdata (d1::d2::_xs)
             end
           
        | C.TYPEDEF ((specifier, name_list), cabsloc) when List.exists (fun (_, dt, _, _) -> Block.is_funcptr dt || Block.is_proto dt) name_list ->
@@ -6440,21 +6440,14 @@ module Global = struct
 
        | C.TYPEDEF (name_group, cabsloc) ->
           (** typedef type new_type *)
-          Cprint.print_def x;
+          if not dummy then Cprint.print_def x;
           
-          pn_s "STRUCTURE" "@OTHER TYPEDEF";
-          dbg "STRUCTURE" "name list:" (iterS Block.print_spec_elem ",") (fst name_group);
-          dbg "STRUCTURE" "Data Type:" (iterS (fun (_, dt, _, _) -> Block.print_decl_type dt) "---") (snd name_group);
-
           let (spec, names) = try Block.get_name_group name_group with _ -> raise (StError ("TYPEDEF @ " ^ (Locs.to_str $$ Locs.to_loc cabsloc))) in
           let all_news = (fun (n,_,_,_) -> n) |>>| names in
           List.iter (fun n -> Block.s_aliases := V.add n spec !Block.s_aliases) all_news;
 
           let fptrs = (fun acc (n,_,_,is_fptr) -> if is_fptr then acc@[n] else acc) |->> ([], names) in
           Block.func_ptrs.contents <- !Block.func_ptrs @ fptrs;
-
-          dbg "STRUCTURE" "Type:" pw spec;
-          dbg "STRUCTURE" "Names:" (iterS (fun (n,_,_,_) -> pw n) ",") names;
 
           let new_struct_map = (fun (n, _, _, _) ->
               (n, spec)) |>>| names in (** (new structure, old structure) *)
@@ -6762,7 +6755,7 @@ module Global = struct
                 end
           end
        | C.ONLYTYPEDEF (specifier, cabsloc) as dec ->
-          Cprint.print_def x;
+          if not dummy then Cprint.print_def x;
           let loc = Locs.to_loc cabsloc in
           pn_s "STRUCTURE" "@17";
           dbg "STRUCTURE" "dec:" Cprint.print_def dec;
@@ -6804,7 +6797,7 @@ module Global = struct
                   let new_structs  = (fun g -> STRUCT (g, loc)) |>>| (structures_new) in
                   Block.update_structures all_structures;
                   let all = List.rev (aux_structs' @ aux_blocks' @ new_structs) in
-                  translate (all @ acc) pointers all_structures (ptr_struct @ h) procs struct_map fvs fpdata _xs
+                  translate ~dummy:dummy (all @ acc) pointers all_structures (ptr_struct @ h) procs struct_map fvs fpdata _xs
                   
                 end
               else
@@ -6812,7 +6805,7 @@ module Global = struct
                   let all_structures = add_to_structures sofar_structures g in
                   let new_structs  = [STRUCT (g, loc)] in
                   
-                  translate (aux_structs' @ aux_blocks' @ new_structs @ acc) pointers all_structures (ptr_struct @ h) procs struct_map fvs fpdata _xs
+                  translate ~dummy:dummy (aux_structs' @ aux_blocks' @ new_structs @ acc) pointers all_structures (ptr_struct @ h) procs struct_map fvs fpdata _xs
                   
                 end
             end
@@ -7403,7 +7396,6 @@ module Global = struct
     
     dbg "ALLDEFS" "All definitions in final sort:\n" (iterS Cprint.print_def "\n") all_decls;
 
-    
     (all_decls, all_struct_names)
 
   (*
