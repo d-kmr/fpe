@@ -6,6 +6,7 @@
 #include "WPA/Andersen.h"
 #include "SABER/LeakChecker.h"
 #include "SVF-FE/PAGBuilder.h"
+#include <time.h>
 
 using namespace SVF;
 using namespace llvm;
@@ -759,10 +760,11 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
 	{
 	  // debugPeekString("mkJsonOneCall: ","fpcall with no Value! (fail)");
 	  std::string topName = getTopNode(fpNode)->getValue()->getName().str();
-	  cerr << "==============\n";
-	  cerr << "mkJsonOneCall: fpcall of " << topName << " has no Value (fail)\n";
-	  cerr << "==============\n";
-	  exit(1);
+	  // cerr << "==============\n";
+	  // cerr << "mkJsonOneCall: fpcall of " << topName << " has no Value (fail)\n";
+	  // cerr << "==============\n";
+	  //	  exit(1);
+	  // return("continue");
 	}
   // Checking: Skip if the tail-part contains a non-function node	  
   if (fpPagNode == NULL
@@ -838,6 +840,8 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
 
 int main(int argc, char ** argv)
 {
+  clock_t start = clock();
+  
   debugPeekString("Main starts","");
   // argment processing for SVF
 
@@ -853,7 +857,7 @@ int main(int argc, char ** argv)
 	{
 	  debugflag = true;
 	}
-	
+
   SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
 
   /// Build Program Assignment Graph (PAG)
@@ -864,6 +868,9 @@ int main(int argc, char ** argv)
   Andersen *ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
 
   const PAG::CallSiteToFunPtrMap& aaa = pag->getIndirectCallsites();
+  
+  clock_t finish_SVF = clock();
+  
   std::vector<std::string> jsonResult;
 
   for (auto iter = aaa.begin(), iend = aaa.end(); iter != iend; iter++)
@@ -873,15 +880,21 @@ int main(int argc, char ** argv)
 	  if(s != "continue") jsonResult.push_back(s);
 	}
 
+  
   // Output
   std::string jsonOutput = "[\n" + stringVector(jsonResult,_None,_None,_CommaNewLine,_NewLine) + "]\n";
   debugPeekString(jsonOutput,"");
   cout << jsonOutput;
 
-  
   delete ander;
   delete pag;    
   delete svfModule;
 
+  clock_t finish = clock();
+
+  fprintf(stderr,"%4.5f [sec] Amodule total\n",(double)(finish - start)/ CLOCKS_PER_SEC);
+  fprintf(stderr,"%4.5f [sec] -- SVF\n",(double)(finish_SVF - start)/ CLOCKS_PER_SEC);
+  fprintf(stderr,"%4.5f [sec] -- Extraction\n",(double)(finish - finish_SVF)/ CLOCKS_PER_SEC);
+  
   return 0;
 }
