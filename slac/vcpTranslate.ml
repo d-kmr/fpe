@@ -6440,64 +6440,72 @@ module Global = struct
 
        | C.TYPEDEF (name_group, cabsloc) ->
           (** typedef type new_type *)
+          
           if not dummy then Cprint.print_def x;
           
-          let (spec, names) = try Block.get_name_group name_group with _ -> raise (StError ("TYPEDEF @ " ^ (Locs.to_str $$ Locs.to_loc cabsloc))) in
+          let (spec, names) =
+            try       Block.get_name_group name_group
+            with _ -> raise (StError ("TYPEDEF @ " ^ (Locs.to_str $$ Locs.to_loc cabsloc)))
+          in
+         
           let all_news = (fun (n,_,_,_) -> n) |>>| names in
           List.iter (fun n -> Block.s_aliases := V.add n spec !Block.s_aliases) all_news;
-
+        
           let fptrs = (fun acc (n,_,_,is_fptr) -> if is_fptr then acc@[n] else acc) |->> ([], names) in
           Block.func_ptrs.contents <- !Block.func_ptrs @ fptrs;
-
+          
           let new_struct_map = (fun (n, _, _, _) ->
               (n, spec)) |>>| names in (** (new structure, old structure) *)
-
+          
           let proto_types = List.filter (fun (_, _, _, b) -> b) names in
-
-            let _ =
-              if List.length proto_types > 0 then
-                let type_names = (fun (nm, _, _, _) -> nm) |>>| proto_types in
-                let specs = fst name_group in
-                let dps' = (fun (nm,dt,_,_) -> (nm,dt)) |>>| (snd name_group) in
-                let dps = (fun (nm,_) -> nm |<- type_names) |>- dps' in
-                List.iter (fun (name, dt) ->
-                    let ftype = Block.build_attributes true name pointers fvs  cabsloc dt specs in
-                    Block.func_ptr_types := !Block.func_ptr_types @ [(name, ftype)]) dps
-              else
-                ()
-            in
-            
-            let vv = ((fun acc (na, dt, _, _) ->
-                       let lens = get_array_dimension dt in
-                       if List.length lens = 0 then
-                         acc
-                       else
-                         V.add na (spec, lens) acc
-                     ) |->> (!Block.array_aliases, snd name_group)) in
-            Block.array_aliases := vv;
-            
-            if Structure.exists sofar_structures spec then
-              begin
-                pn_s "STRUCTURE" (spec ^ " is a struct and it is found");
-
-                let p = (fun (n,_,_,_) -> (n, true)) |>>| ((fun (_,b,c,_) -> b || c) |>- names) in
-                let s = Structure.find sofar_structures spec in
-
-                let _names = (fun (n,_,_,_) -> n) |>>| names in
-                let new_logical_structs = (Structure.clone s) |>>| _names in
-                
-                let l_ss = (fun (_,b,_) -> b = spec) |>- ptr_struct in
-                let n_l_ss = List.concat ((fun n -> (fun (a,b,c) -> (a,n,c)) |>>| l_ss) |>>| _names) in
-
-                let new_physical_structs = (fun g -> STRUCT (g, Locs.to_loc cabsloc)) |>>| new_logical_structs in
-                let all_structs = add_to_structures |->> (sofar_structures, new_logical_structs) in
-
-                if spec |<- !Block.unions then
-                  Block.unions := !Block.unions @ _names;
-                
-                  translate (new_physical_structs @ acc) (pointers @ p) all_structs (ptr_struct @ n_l_ss) procs (new_struct_map @ struct_map) fvs fpdata _xs
-              end
-            else if (spec, true) |<- pointers then
+          
+          let _ =
+            if List.length proto_types > 0 then
+              let type_names = (fun (nm, _, _, _) -> nm) |>>| proto_types in
+              let specs = fst name_group in
+              let dps' = (fun (nm,dt,_,_) -> (nm,dt)) |>>| (snd name_group) in
+              let dps = (fun (nm,_) -> nm |<- type_names) |>- dps' in
+              List.iter (fun (name, dt) ->
+                  let ftype = Block.build_attributes true name pointers fvs  cabsloc dt specs in
+                  Block.func_ptr_types := !Block.func_ptr_types @ [(name, ftype)]) dps
+            else
+              ()
+          in
+          
+          let vv = ((fun acc (na, dt, _, _) ->
+                     let lens =
+                       try get_array_dimension dt
+                       with _ -> [Exp.CONST 1]
+                     in
+                     if List.length lens = 0 then
+                       acc
+                     else
+                       V.add na (spec, lens) acc
+                   ) |->> (!Block.array_aliases, snd name_group)) in
+          Block.array_aliases := vv;
+          
+          if Structure.exists sofar_structures spec then
+            begin
+              pn_s "STRUCTURE" (spec ^ " is a struct and it is found");
+              
+              let p = (fun (n,_,_,_) -> (n, true)) |>>| ((fun (_,b,c,_) -> b || c) |>- names) in
+              let s = Structure.find sofar_structures spec in
+              
+              let _names = (fun (n,_,_,_) -> n) |>>| names in
+              let new_logical_structs = (Structure.clone s) |>>| _names in
+              
+              let l_ss = (fun (_,b,_) -> b = spec) |>- ptr_struct in
+              let n_l_ss = List.concat ((fun n -> (fun (a,b,c) -> (a,n,c)) |>>| l_ss) |>>| _names) in
+              
+              let new_physical_structs = (fun g -> STRUCT (g, Locs.to_loc cabsloc)) |>>| new_logical_structs in
+              let all_structs = add_to_structures |->> (sofar_structures, new_logical_structs) in
+              
+              if spec |<- !Block.unions then
+                Block.unions := !Block.unions @ _names;
+              
+              translate (new_physical_structs @ acc) (pointers @ p) all_structs (ptr_struct @ n_l_ss) procs (new_struct_map @ struct_map) fvs fpdata _xs
+            end
+          else if (spec, true) |<- pointers then
               let p = (fun (n,_,_,_) -> (n, true)) |>>| names in
               translate acc (pointers @ p) sofar_structures ptr_struct procs (new_struct_map @ struct_map) fvs fpdata _xs
             else
@@ -6755,15 +6763,16 @@ module Global = struct
                 end
           end
        | C.ONLYTYPEDEF (specifier, cabsloc) as dec ->
+        
           if not dummy then Cprint.print_def x;
           let loc = Locs.to_loc cabsloc in
           pn_s "STRUCTURE" "@17";
           dbg "STRUCTURE" "dec:" Cprint.print_def dec;
-          
+       
           let ((g_name, g_fields, s_type) as g : Structure.t), h, aux_structs, aux_blocks, fvs = unfold_struct sofar_structures pointers ptr_struct cabsloc fvs specifier in
           
           pf_s "STRUCTURE" pi (List.length g_fields);
-          
+       
           if g_name = "nostruct" then
             translate acc pointers sofar_structures ptr_struct procs struct_map fvs fpdata _xs
           else
@@ -6773,14 +6782,14 @@ module Global = struct
               
               let aux_structs' = (fun g -> STRUCT (g, loc)) |>>| (aux_structs) in
               let aux_blocks'  = (fun g -> STATEMENT g) |>>| aux_blocks in
-
+          
               let rec all_olds current =
                 
                 let old_refs = fst |>>| (List.filter (fun (al, old_s) -> al<>old_s && old_s = current) struct_map) in
                 
                 (fun acc old -> let all_others = all_olds old in acc@all_others) |->> (old_refs, old_refs)
               in
-              
+   
               if n_fields > 0 then
                 begin
                   let old_refs = all_olds g_name in

@@ -1783,7 +1783,7 @@ let rec var_be_typed vars to_static loc (x, _) =
               let exp' = BINOP (toExp packs expression1, Op.toOp binary_operator, toExp packs expression2) in
               bitwise $$ exp'
             with
-              e -> Cprint.print_expression exp; pn ""; raise e
+              e -> (* Cprint.print_expression exp; pn ""; *) raise e
        end
     | Cabs.CAST ((specifier, decl_type), init_expression) ->
        begin
