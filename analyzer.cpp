@@ -1,12 +1,12 @@
-// Analyzer module of FPE
-// Daisuke Kimura and Mahmudul Faisal Al Ameen, 2021 ©
+/*
+Analyzer module of FPE
+*/
+
 
 #include "SVF-FE/LLVMUtil.h"
 #include "Graphs/SVFG.h"
 #include "WPA/Andersen.h"
-#include "SABER/LeakChecker.h"
-#include "SVF-FE/PAGBuilder.h"
-#include <time.h>
+#include "SVF-FE/SVFIRBuilder.h"
 
 using namespace SVF;
 using namespace llvm;
@@ -38,37 +38,23 @@ std::string getTypeName(const llvm::Type* tp)
 
 void peekType(const llvm::Type* tp)
 {
-  cerr << getTypeName(tp);
+  cout << getTypeName(tp) << "\n" << flush;
   return;  
 }
 
 void peekValue(const llvm::Value *val)
 {
   if (val == NULL){ cout << "It's NULL!\n"; return; }
-  if (dyn_cast<Argument>(val) != NULL)			{ cerr << "It's Argument\n"; }
-  if (dyn_cast<BasicBlock>(val) != NULL)		{ cerr << "It's BasicBlock\n"; }
-  if (dyn_cast<InlineAsm>(val) != NULL)			{ cerr << "It's InlineAsm\n"; }
-  if (dyn_cast<MetadataAsValue>(val) != NULL)	{ cerr << "It's MetadataAsValue\n"; }
-  if (dyn_cast<BlockAddress>(val) != NULL)		{ cerr << "It's BlockAddress\n"; }
-  if (dyn_cast<ConstantAggregate>(val) != NULL)	{ cerr << "It's ConstantAggregate\n"; }
-  if (dyn_cast<ConstantData>(val) != NULL)		{ cerr << "It's ConstantData\n"; }
-  if (dyn_cast<ConstantExpr>(val) != NULL)		{ cerr << "It's ConstantExpr\n"; }
-  //  if (dyn_cast<DSOLocalEquivalent>(val) != NULL){ cerr << "It's DSOLocalEquivalent\n"; }
-  if (dyn_cast<GlobalValue>(val) != NULL)		{ cerr << "It's GlobalValue\n"; }
-  //  if (dyn_cast<DerivedUser>(val) != NULL)		{ cerr << "It's DerivedUser\n"; }
-  if (dyn_cast<Instruction>(val) != NULL)		{ cerr << "It's Instruction\n"; }
-  if (dyn_cast<Operator>(val) != NULL)			{ cerr << "It's Operator\n"; }  
-
   std::string str;
   raw_string_ostream rawstr(str);
   val->print(rawstr);
-  cerr << rawstr.str() << "\n";
+  cout << rawstr.str() << "\n" << flush;
   return;
 }
 
 void peekNode(PAGNode* node)
 {
-  if (node == NULL) { cerr << "NullNode!\n"; return; }
+  if (node == NULL) { cout << "NullNode!\n"; return; }
   const llvm::Value* val = node->getValue();
   peekValue(val);
   return;
@@ -77,29 +63,28 @@ void peekNode(PAGNode* node)
 void debugPeekNode(std::string mes, PAGNode* node)
 {
   if (!debugflag) return;
-  cerr << mes;
-  peekNode(node);
+  cout << mes; peekNode(node);
   return;
 }
 
 void debugPeekValue(std::string mes, const llvm::Value* val)
 {
   if (!debugflag) return;
-  cerr << mes; peekValue(val);
+  cout << mes; peekValue(val);
   return;
 }
 
 void debugPeekType(std::string mes, const llvm::Type* tp)
 {
   if (!debugflag) return;
-  cerr << mes; peekType(tp);
+  cout << mes; peekType(tp);
   return;
 }
 
 void debugPeekString(std::string mes1, std::string mes2)
 {
   if (!debugflag) return;
-  cerr << mes1 << mes2 << "\n";
+  cout << mes1 << mes2 << "\n";
   return;
 }
 
@@ -240,21 +225,21 @@ std::string checkTypeOfValue(const llvm::Value *val){
   return "Other";
 }
 
+
 void checkIncommingEdge(PAGNode* node)
-{ // Addr, Copy, Store, Load, Call, Ret, NormalGep, VariantGep, ThreadFork, ThreadJoin, Cmp, BinaryOp, UnaryOp  
-  if(*(node->getIncomingEdges(PAGEdge::Addr).begin()) != NULL) cout << "Addr";
-  if(*(node->getIncomingEdges(PAGEdge::Copy).begin()) != NULL) cout << "Copy";	// black edge
-  if(*(node->getIncomingEdges(PAGEdge::Store).begin()) != NULL) cout << "Store"; 
-  if(*(node->getIncomingEdges(PAGEdge::Load).begin()) != NULL) cout << "Load"; 	 // red edge
-  if(*(node->getIncomingEdges(PAGEdge::Call).begin()) != NULL) cout << "Call";
-  if(*(node->getIncomingEdges(PAGEdge::Ret).begin()) != NULL) cout << "Ret";	
-  if(*(node->getIncomingEdges(PAGEdge::NormalGep).begin()) != NULL) cout << "NGep"; // purple edge
-  if(*(node->getIncomingEdges(PAGEdge::VariantGep).begin()) != NULL) cout << "VGep";
-  if(*(node->getIncomingEdges(PAGEdge::ThreadFork).begin()) != NULL) cout << "Fork";
-  if(*(node->getIncomingEdges(PAGEdge::ThreadJoin).begin()) != NULL) cout << "Join";
-  if(*(node->getIncomingEdges(PAGEdge::Cmp).begin()) != NULL) cout << "Cmp";
-  if(*(node->getIncomingEdges(PAGEdge::BinaryOp).begin()) != NULL) cout << "Bop";
-  if(*(node->getIncomingEdges(PAGEdge::UnaryOp).begin()) != NULL) cout << "Uop";
+{ // Addr, Copy, Store, Load, Call, Ret, Gep, ThreadFork, ThreadJoin, Cmp, BinaryOp, UnaryOp  
+  if(*(node->getIncomingEdges(SVFStmt::Addr).begin()) != NULL) cout << "Addr";
+  if(*(node->getIncomingEdges(SVFStmt::Copy).begin()) != NULL) cout << "Copy";	// black edge
+  if(*(node->getIncomingEdges(SVFStmt::Store).begin()) != NULL) cout << "Store"; 
+  if(*(node->getIncomingEdges(SVFStmt::Load).begin()) != NULL) cout << "Load"; 	 // red edge
+  if(*(node->getIncomingEdges(SVFStmt::Call).begin()) != NULL) cout << "Call";
+  if(*(node->getIncomingEdges(SVFStmt::Ret).begin()) != NULL) cout << "Ret";	
+  if(*(node->getIncomingEdges(SVFStmt::Gep).begin()) != NULL) cout << "Gep";
+  if(*(node->getIncomingEdges(SVFStmt::ThreadFork).begin()) != NULL) cout << "Fork";
+  if(*(node->getIncomingEdges(SVFStmt::ThreadJoin).begin()) != NULL) cout << "Join";
+  if(*(node->getIncomingEdges(SVFStmt::Cmp).begin()) != NULL) cout << "Cmp";
+  if(*(node->getIncomingEdges(SVFStmt::BinaryOp).begin()) != NULL) cout << "Bop";
+  if(*(node->getIncomingEdges(SVFStmt::UnaryOp).begin()) != NULL) cout << "Uop";
   return;
 }
 
@@ -306,16 +291,15 @@ PAGNode* getParentNode(PAGNode* node, PAGEdge::PEDGEK edgeKind)
   return (*edge)->getSrcNode();
 }				   
 
-
 // Getting the distination node of a LOAD edge from 'node'
 // If 'node' doesn't have a LOAD edge, this returns NULL
 std::vector<PAGNode*> getLoadDist(PAGNode* node)
 {
   if(node == NULL)
 	{
-	  cerr << "==============\n";
-	  cerr << "getParentNode: NULL node\n";
-	  cerr << "==============\n";
+	  fprintf(stderr, "==============\n");
+	  fprintf(stderr, "getParentNode: NULL node\n");
+	  fprintf(stderr, "==============\n");
 	  exit(1);
 	}
   std::vector<PAGNode*> nodes;
@@ -327,13 +311,13 @@ std::vector<PAGNode*> getLoadDist(PAGNode* node)
 	}
   return (nodes);  
 }
-
+ 
 // 'node' is a pointer node if it is a source node of a Load edge
 bool isPtrNode(PAGNode* node)
 {
   return (getLoadDist(node).size() != 0);
 }
-
+  
 // Get the TopNode (start node for obtaining fpcall info) of given node
 // TopNode is ALLOCA for local variables, COMMON for global variables
 PAGNode* getTopNode(PAGNode* node)
@@ -346,18 +330,18 @@ PAGNode* getTopNode(PAGNode* node)
 	{
 	  debugPeekNode("getTopNode (in loop): ", nd);
 	  //	  fprintf(stderr,"getTopNodeBegin-%d\n",ctr);
-	  edge1 = nd->getIncomingEdges(PAGEdge::NormalGep).begin();
-	  edge2 = nd->getIncomingEdges(PAGEdge::Load).begin();
-	  edge3 = nd->getIncomingEdges(PAGEdge::Copy).begin();	// for union
+	  edge1 = nd->getIncomingEdges(SVFStmt::Gep).begin();
+	  edge2 = nd->getIncomingEdges(SVFStmt::Load).begin();
+	  edge3 = nd->getIncomingEdges(SVFStmt::Copy).begin();	// for union
 											  
 	  /*
-	  PAGEdge::PAGEdgeSetTy::iterator edge4 = nd->getIncomingEdges(PAGEdge::Store).begin();
-	  PAGEdge::PAGEdgeSetTy::iterator edge5 = nd->getIncomingEdges(PAGEdge::Call).begin();
-	  PAGEdge::PAGEdgeSetTy::iterator edge6 = nd->getIncomingEdges(PAGEdge::Ret).begin();
-	  PAGEdge::PAGEdgeSetTy::iterator edge7 = nd->getIncomingEdges(PAGEdge::VariantGep).begin();
-	  PAGEdge::PAGEdgeSetTy::iterator edge8 = nd->getIncomingEdges(PAGEdge::ThreadFork).begin();
-	  PAGEdge::PAGEdgeSetTy::iterator edge9 = nd->getIncomingEdges(PAGEdge::ThreadJoin).begin();
-	  PAGEdge::PAGEdgeSetTy::iterator edge10 = nd->getIncomingEdges(PAGEdge::Addr).begin();	  
+	  PAGEdge::PAGEdgeSetTy::iterator edge4 = nd->getIncomingEdges(SVFStmt::Store).begin();
+	  PAGEdge::PAGEdgeSetTy::iterator edge5 = nd->getIncomingEdges(SVFStmt::Call).begin();
+	  PAGEdge::PAGEdgeSetTy::iterator edge6 = nd->getIncomingEdges(SVFStmt::Ret).begin();
+	  PAGEdge::PAGEdgeSetTy::iterator edge7 = nd->getIncomingEdges(SVFStmt::VariantGep).begin();
+	  PAGEdge::PAGEdgeSetTy::iterator edge8 = nd->getIncomingEdges(SVFStmt::ThreadFork).begin();
+	  PAGEdge::PAGEdgeSetTy::iterator edge9 = nd->getIncomingEdges(SVFStmt::ThreadJoin).begin();
+	  PAGEdge::PAGEdgeSetTy::iterator edge10 = nd->getIncomingEdges(SVFStmt::Addr).begin();	  
 	  if (checkNodeType(nd) == "ALLOCA" || checkNodeType(nd) == "GLOBAL") break;
 	  if (*edge3 != NULL) { cout << "Copy is found!\n"; break; }
 	  if (*edge4 != NULL) { cout << "Store is found!\n"; break; }	  
@@ -384,28 +368,15 @@ PAGNode* getTopNode(PAGNode* node)
   return(nd);
 }
 
-
 typedef enum { UNKNOWN, VAR, ARR, STRUCT, UNION } NodeKind;
 
 // This is used only for top-node (alloca node)
 NodeKind checkNodeKind(PAGNode* node)
 {
   if (node == NULL) return (UNKNOWN);
-  const llvm::Value* val = (node->getValue());
-  const llvm::AllocaInst* allocaInst = dyn_cast<AllocaInst>(val);
-  const llvm::GlobalValue* globalValue = dyn_cast<GlobalValue>(val);
-  const Type* tp;
-  
-  if (allocaInst == NULL && globalValue == NULL) return (UNKNOWN);
-  if (allocaInst != NULL) tp = allocaInst->getAllocatedType();
-  if (globalValue != NULL) tp = globalValue->getValueType();
-  
-  if(tp->isStructTy()) return (STRUCT);
-  if(tp->isArrayTy()) return (ARR);
-  
-  SVF::PAGEdge::PAGEdgeSetTy loadEdgeItr = node->getOutgoingEdges(PAGEdge::Load);
-  SVF::PAGEdge::PAGEdgeSetTy  gepEdgeItr = node->getOutgoingEdges(PAGEdge::NormalGep);
-  SVF::PAGEdge::PAGEdgeSetTy  copyEdgeItr = node->getOutgoingEdges(PAGEdge::Copy);
+  SVF::PAGEdge::PAGEdgeSetTy loadEdgeItr = node->getOutgoingEdges(SVFStmt::Load);
+  SVF::PAGEdge::PAGEdgeSetTy  gepEdgeItr = node->getOutgoingEdges(SVFStmt::Gep);
+  SVF::PAGEdge::PAGEdgeSetTy  copyEdgeItr = node->getOutgoingEdges(SVFStmt::Copy);
 
   if (copyEdgeItr.size() != 0) return(UNION);
 
@@ -413,8 +384,8 @@ NodeKind checkNodeKind(PAGNode* node)
 	{
 	  std::vector<PAGNode*> nodes = getLoadDist(node);
 	  if (nodes[0] == NULL) { return(UNKNOWN); }
-	  if (nodes[0]->getOutgoingEdges(PAGEdge::NormalGep).size() == 0
-		  && nodes[0]->getOutgoingEdges(PAGEdge::Copy).size() == 0) return (VAR);
+	  if (nodes[0]->getOutgoingEdges(SVFStmt::Gep).size() == 0
+		  && nodes[0]->getOutgoingEdges(SVFStmt::Copy).size() == 0) return (VAR);
 	  else return (STRUCT);
 	}
 
@@ -425,7 +396,7 @@ NodeKind checkNodeKind(PAGNode* node)
 	  std::string name = nd->getValue()->getName().str();
 	  if (name.find("arrayidx") != std::string::npos
 		  && getLoadDist(nd).size() > 0
-		  && getLoadDist(nd)[0]->getOutgoingEdges(PAGEdge::NormalGep).size() == 0)
+		  && getLoadDist(nd)[0]->getOutgoingEdges(SVFStmt::Gep).size() == 0)
 		return (ARR);
 	}
   
@@ -455,8 +426,8 @@ FPkind getTopFpKind(PAGNode* node)
   bool arrptrFlag = false;
   if (node == NULL) return (NoInfo);
   
-  SVF::PAGEdge::PAGEdgeSetTy loadEdgeItr = node->getOutgoingEdges(PAGEdge::Load);
-  SVF::PAGEdge::PAGEdgeSetTy  gepEdgeItr = node->getOutgoingEdges(PAGEdge::NormalGep);
+  SVF::PAGEdge::PAGEdgeSetTy loadEdgeItr = node->getOutgoingEdges(SVFStmt::Load);
+  SVF::PAGEdge::PAGEdgeSetTy  gepEdgeItr = node->getOutgoingEdges(SVFStmt::Gep);
 
   if (loadEdgeItr.size() != 0) return(Ptr);
 
@@ -467,7 +438,7 @@ FPkind getTopFpKind(PAGNode* node)
 	  std::string name = nd->getValue()->getName().str();
 	  if (name.find("arrayidx") != std::string::npos
 		  && getLoadDist(nd).size() > 0
-		  && getLoadDist(nd)[0]->getOutgoingEdges(PAGEdge::NormalGep).size() > 0)
+		  && getLoadDist(nd)[0]->getOutgoingEdges(SVFStmt::Gep).size() > 0)
 		arrptrFlag = true;
 	  if (name.find("arrayidx") != std::string::npos && getLoadDist(nd).size() == 0)  
 		arrFlag = true;
@@ -498,9 +469,9 @@ std::string getPrevPointer(PAGNode* node)
 		llvm::Type* tp = castInst->getSrcTy();
 		if (!tp->isPointerTy ())
 		  {
-			cerr << "==============\n";
-			cerr << "Unexpected type\n";
-			cerr << "==============\n";
+			fprintf(stderr, "==============\n");
+			fprintf(stderr, "Unexpected type\n");
+			fprintf(stderr, "==============\n");
 			exit(1);
 		  }
 		ptr = val->stripPointerCasts()->getName().str();
@@ -508,7 +479,6 @@ std::string getPrevPointer(PAGNode* node)
   debugPeekString("getPrePointer-End: ", ptr); 
   return(ptr);
 }
-
 
 typedef struct NK {
   PAGNode* node;
@@ -522,16 +492,16 @@ NK* nextGep(NK* nodekind, PAGNode* topNode)
   debugPeekNode("nextGep-Begin: nodekind->node: ", nodekind->node);
   if(topNode == NULL || topNode->getValue() == NULL)
 	{
-	  cerr << "==============\n";
-	  cerr << "nextGep: Unexpected topNode\n";
-	  cerr << "==============\n";
+	  fprintf(stderr, "==============\n");
+	  fprintf(stderr, "nextGep: Unexpected topNode\n");
+	  fprintf(stderr, "==============\n");
 	  exit(1);
 	}
   if(nodekind->node == NULL || nodekind->node->getValue() == NULL)
 	{
-	  cerr << "==============\n";
-	  cerr << "nextGep: Unexpected curNode\n";
-	  cerr << "==============\n";
+	  fprintf(stderr, "==============\n");
+	  fprintf(stderr, "nextGep: Unexpected curNode\n");
+	  fprintf(stderr, "==============\n");
 	  exit(1);
 	}  
   std::string topName = topNode->getValue()->getName().str();  
@@ -546,9 +516,9 @@ NK* nextGep(NK* nodekind, PAGNode* topNode)
 	{
 	  if(nodekind->node == NULL || nodekind->node->getValue() == NULL)
 		{
-		  cerr << "==============\n";
-		  cerr << "nextGep: Unexpected nodekind (in while)\n";
-		  cerr << "==============\n";
+		  fprintf(stderr, "==============\n");
+		  fprintf(stderr, "nextGep: Unexpected nodekind (in while)\n");
+		  fprintf(stderr, "==============\n");
 		  exit(1);
 		}
 	  debugPeekNode("nextGep-2:nodekind->node: ", nodekind->node);
@@ -566,13 +536,13 @@ NK* nextGep(NK* nodekind, PAGNode* topNode)
 	  debugPeekNode("nextGep-4:nodekind->node: ", nodekind->node);
 	  if(dyn_cast<LoadInst>(nodekind->node->getValue()) != NULL)
 		{
-		  nodekind->node = getParentNode(nodekind->node, PAGEdge::Load);
+		  nodekind->node = getParentNode(nodekind->node, SVFStmt::Load);
 		  ptrFlag = true;
 		  break;
 		}
 	  debugPeekNode("nextGep-5:nodekind->node: ", nodekind->node);
-	  PAGNode* node1 = getParentNode(nodekind->node, PAGEdge::NormalGep);
-	  PAGNode* node2 = getParentNode(nodekind->node, PAGEdge::Copy); // for the case: alloca -COPY-> bitcast %union
+	  PAGNode* node1 = getParentNode(nodekind->node, SVFStmt::Gep);
+	  PAGNode* node2 = getParentNode(nodekind->node, SVFStmt::Copy); // for the case: alloca -COPY-> bitcast %union
 	  nodekind->node = (node1 != NULL) ? node1 : node2;
 	  debugPeekNode("nextGep-6:nodekind->node: ", nodekind->node);
 	  debugPeekString("nextGep-6:subgoal: ", subgoal);
@@ -584,15 +554,15 @@ NK* nextGep(NK* nodekind, PAGNode* topNode)
 		debugPeekString("nextGep-7: reached subgoal: ",subgoal);
 		break;
 	  }	  
-	  PAGEdge::PAGEdgeSetTy edgeItr = nodekind->node->getOutgoingEdges(PAGEdge::NormalGep);
+	  PAGEdge::PAGEdgeSetTy edgeItr = nodekind->node->getOutgoingEdges(SVFStmt::Gep);
 	  debugPeekNode("nextGep-8:nodekind->node: ", nodekind->node);
 	  for (auto edge = edgeItr.begin(), iend = edgeItr.end(); edge != iend; edge++)
 		{
 		  if(*edge == NULL)
 			{
-			  cerr << "==============\n";
-			  cerr << "Something unexpected happens!\n"; 
-			  cerr << "==============\n";
+			  fprintf(stderr, "==============\n");
+			  fprintf(stderr, "Something unexpected happens!\n"); 
+			  fprintf(stderr, "==============\n");
 			  exit(1);
 			}
 		  PAGNode* dst = (*edge)->getDstNode();
@@ -651,9 +621,9 @@ std::string createFldOne(NK* nodekind)
 			return(""); // just skip 
 		else
 		  {
-			cerr << "==============\n";
-			cerr << "createFldOne: unexpected type-1\n";
-			cerr << "==============\n";
+			fprintf(stderr, "==============\n");
+			fprintf(stderr, "createFldOne: unexpected type-1\n");
+			fprintf(stderr, "==============\n");
 			exit(1);
 		  }
 	}
@@ -667,10 +637,10 @@ std::string createFldOne(NK* nodekind)
 	}
 	else
 	  {
-		cerr << "==============\n";
-		cerr << "Error: createFldOne: the following node is not bitcast\n";
+		fprintf(stderr, "==============\n");
+		fprintf(stderr, "Error: createFldOne: the following node is not bitcast\n");
 		peekValue(val);
-		cerr << "==============\n";
+		fprintf(stderr, "==============\n");	  
 		exit(1);
 	  }
   debugPeekNode("createFldOne-3:nodekind->node: ", nodekind->node);
@@ -686,13 +656,12 @@ std::string createFldOne(NK* nodekind)
   return (fldOne);
 }
 
-
 // Creating Fields (main part)
 void createFlds(PAGNode* fpNode, PAGNode* topNode, std::vector<string>* fldsP)
 {
   debugPeekString("createFlds-Begin", "");  
   NK* nodekind = (NK*)malloc(sizeof(NK));
-  nodekind->node = getParentNode(fpNode,PAGEdge::Load); // GEP node or bitcast node
+  nodekind->node = getParentNode(fpNode,SVFStmt::Load); // GEP node or bitcast node
   nodekind->kind = Ptr; // initial fp should be a pointer
   debugPeekNode("createFlds-0:nodekind->node: ", nodekind->node);
   debugPeekNode("createFlds-0:fpNode        : ", fpNode);
@@ -734,7 +703,6 @@ void createFlds(PAGNode* fpNode, PAGNode* topNode, std::vector<string>* fldsP)
   return;
 }
 
-
 std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
 {
   std::string res;
@@ -742,7 +710,7 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
   std::vector<std::string> flds;
   
   // function pointer load node for fpcall, like %20 = load %fp2
-  PAGNode* fpNode = pag->getPAGNode(fpNodeID);
+  PAGNode* fpNode = pag->getGNode(fpNodeID);
 
   debugPeekString("---------------------","");
   debugPeekNode ("mkJsonOneCall Begin: ", fpNode);
@@ -752,19 +720,18 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
   string inFun = (fpNode != NULL && fpNode->getFunction() != NULL) ? fpNode->getFunction()->getName().str() : "FAILED-TO-GET_INFUN";
 	  
   // Getting function values for fpNode from the SVF analysis result
-  const NodeBS& fpPts = ander->getPts(fpNodeID); // iterator	  
-  PAGNode* fpPagNode = ander->getPAG()->getPAGNode(*fpPts.begin());
+  const SVF::PointsTo& fpPts = ander->getPts(fpNodeID); // iterator	  
+  PAGNode* fpPagNode = ander->getPAG()->getGNode(*fpPts.begin());
 
   // Checking: Skip if the tail-part contains a non-function node	  
   if( !fpPagNode->hasValue() )
 	{
 	  // debugPeekString("mkJsonOneCall: ","fpcall with no Value! (fail)");
 	  std::string topName = getTopNode(fpNode)->getValue()->getName().str();
-	  // cerr << "==============\n";
-	  // cerr << "mkJsonOneCall: fpcall of " << topName << " has no Value (fail)\n";
-	  // cerr << "==============\n";
-	  //	  exit(1);
-	  // return("continue");
+	  fprintf(stderr, "==============\n");
+	  fprintf(stderr, "mkJsonOneCall: fpcall of %s has no Value (fail)\n", topName.c_str());
+	  fprintf(stderr, "==============\n");	  
+	  exit(1);
 	}
   // Checking: Skip if the tail-part contains a non-function node	  
   if (fpPagNode == NULL
@@ -774,9 +741,9 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
 
   // Making toFuns
   vector<string> toFuns;	  
-  for (NodeBS::iterator ii=fpPts.begin(), ie=fpPts.end() ; ii != ie; ++ii)
+  for (SVF::PointsTo::iterator ii=fpPts.begin(), ie=fpPts.end() ; ii != ie; ++ii)
 	{
-	  PAGNode* node = ander->getPAG()->getPAGNode(*ii);
+	  PAGNode* node = ander->getPAG()->getGNode(*ii);
 	  if(node->hasValue())
 		{
 		  const std::string funName = node->getValue()->getName().str();
@@ -789,9 +756,9 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
   PAGNode* topNode = getTopNode(fpNode);
   if(topNode == NULL)
 	{
-	  cerr << "==============\n";
-	  cerr << "No TopNode\n";
-	  cerr << "==============\n";
+	  fprintf(stderr, "==============\n");
+	  fprintf(stderr, "No TopNode\n");
+	  fprintf(stderr, "==============\n");
 	  exit(1);
 	}
   std::string topName = topNode->getValue()->getName().str();
@@ -840,61 +807,32 @@ std::string mkJsonOneCall(NodeID fpNodeID, PAG* pag, Andersen * ander)
 
 int main(int argc, char ** argv)
 {
-  clock_t start = clock();
-  
   debugPeekString("Main starts","");
   // argment processing for SVF
-
   int arg_num = 0;
   char** arg_value = new char*[argc];
   std::vector<std::string> moduleNameVec;
-  SVFUtil::processArguments(argc, argv, arg_num, arg_value, moduleNameVec);
-  if( argc < 2 ){
-	cerr << "No bitcode input\n";
-	exit(2);
-  }
-  if( argc >= 3 && (strcmp(argv[2],"-d") == 0 || strcmp(argv[2],"--debug") == 0) )
-	{
-	  debugflag = true;
-	}
-
+  LLVMUtil::processArguments(argc, argv, arg_num, arg_value, moduleNameVec);  
   SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
-
+  svfModule->buildSymbolTableInfo();  
   /// Build Program Assignment Graph (PAG)
-  PAGBuilder builder;
-  PAG* pag = builder.build(svfModule);
-
+  SVFIRBuilder builder;
+  SVFIR* pag = builder.build(svfModule);
   /// Create Andersen's pointer analysis
   Andersen *ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
-
   const PAG::CallSiteToFunPtrMap& aaa = pag->getIndirectCallsites();
-  
-  clock_t finish_SVF = clock();
-  
   std::vector<std::string> jsonResult;
-
   for (auto iter = aaa.begin(), iend = aaa.end(); iter != iend; iter++)
 	{
 	  NodeID fpNodeID = (*iter).second;
 	  std::string s = mkJsonOneCall(fpNodeID, pag, ander);
 	  if(s != "continue") jsonResult.push_back(s);
 	}
-
-  
-  // Output
-  std::string jsonOutput = "[\n" + stringVector(jsonResult,_None,_None,_CommaNewLine,_NewLine) + "]\n";
-  debugPeekString(jsonOutput,"");
+  std::string jsonOutput = "[\n" + stringVector(jsonResult,_None,_None,_CommaNewLine,_NewLine) + "]\n";  
   cout << jsonOutput;
-
   delete ander;
   delete pag;    
-  delete svfModule;
+  //  delete svfModule;  
 
-  clock_t finish = clock();
-
-  fprintf(stderr,"%4.5f [sec] Amodule total\n",(double)(finish - start)/ CLOCKS_PER_SEC);
-  fprintf(stderr,"%4.5f [sec] -- SVF\n",(double)(finish_SVF - start)/ CLOCKS_PER_SEC);
-  fprintf(stderr,"%4.5f [sec] -- Extraction\n",(double)(finish - finish_SVF)/ CLOCKS_PER_SEC);
-  
   return 0;
 }
