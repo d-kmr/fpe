@@ -108,9 +108,6 @@ function buildAnalyzer() {
 	echo "Finish building analyzer"
 }
 
-echo "WARNING: Stop compiling transformer by technical issues"
-exit 0  
-
 # building Transformer
 function buildTransformer() {
 	echo ""
@@ -125,6 +122,9 @@ if [[ $2 != "transformer" ]]
 then
 	buildAnalyzer
 fi
+
+echo "WARNING: Stop compiling transformer by technical issues"
+exit 0  
 
 if [[ $2 != "analyzer" ]]
 then
