@@ -76,8 +76,9 @@ then
 	echo "Start building of SVF"	
 	echo "git cloning"
 	git clone $SVFgit
-#	echo "Patching to suppress output for FPE"
-#	patch SVF/lib/Util/PTAStat.cpp patchfile
+	echo "Patching to suppress output for FPE"
+	patch SVF/lib/Util/PTAStat.cpp diffs/PTAStat.diff
+	patch SVF/include/PersistentPointsToCache.h diffs/PersistentPointsToCache.diff	
 	echo "cd SVF"	
 	cd SVF
 	echo "build SVF"
