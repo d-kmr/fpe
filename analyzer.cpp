@@ -1,5 +1,8 @@
 /*
-Analyzer module of FPE
+Analyzer module of FPE 
+Author: Daisuke Kimura
+2021.11.30 ver 1.1
+2022.06.27 ver 1.2: update for LLVM 13
 */
 
 

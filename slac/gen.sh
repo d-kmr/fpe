@@ -27,9 +27,15 @@ FPEDIR="${PROJECT}-FPE/"
 END=${#PROJECT}+1
 
 Error(){
-		rm -r "$FPEDIR"
-		echo "Transformation failed"
-		exit 1
+	if [ $1 -eq 0 ]
+	then
+		echo "Parse error (skip): $2"
+	else
+		echo "Transformation failed (skip): $2"
+	fi
+		# rm -r "$FPEDIR"
+		#echo "Transformation failed"
+		#exit 1
 }
 
 Transform(){
@@ -42,8 +48,8 @@ Transform(){
 		do
 				FILE=${i:${#ABSDIR}}
 				DEST="$NEWDIR$FILE"
-				./fpe-parser "$i" "${DEST}abs" "$FILE" || Error ""
-				./fpe-unit "${DEST}abs" "$FPJSON" > "${DEST}" 2> "${PROJECT}/fpe-error.log" || Error ""
+				./fpe-parser "$i" "${DEST}abs" "$FILE" || Error 0 $i
+				./fpe-unit "${DEST}abs" "$FPJSON" > "${DEST}" 2> "${PROJECT}/fpe-error.log" || Error 1 $i
 				rm "${DEST}abs"
 		done
 

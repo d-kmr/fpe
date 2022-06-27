@@ -76,8 +76,8 @@ then
 	echo "Start building of SVF"	
 	echo "git cloning"
 	git clone $SVFgit
-	echo "Patching to suppress output for FPE"
-	patch SVF/lib/Util/PTAStat.cpp patchfile
+#	echo "Patching to suppress output for FPE"
+#	patch SVF/lib/Util/PTAStat.cpp patchfile
 	echo "cd SVF"	
 	cd SVF
 	echo "build SVF"
@@ -106,7 +106,10 @@ function buildAnalyzer() {
 	g++ -g -fPIC -std=gnu++14 -O3 -fno-rtti -Wno-deprecated analyzer.o -o $Analyzer $SVFlib/libSvf.a $SVFlib/CUDD/libCudd.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMipo.a $LLVMlib/libLLVMIRReader.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMInstrumentation.a $LLVMlib/libLLVMTarget.a $LLVMlib/libLLVMLinker.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMScalarOpts.a $LLVMlib/libLLVMSupport.a $LLVMlib/libLLVMBitWriter.a $LLVMlib/libLLVMAsmParser.a $LLVMlib/libLLVMInstCombine.a $LLVMlib/libLLVMAggressiveInstCombine.a $LLVMlib/libLLVMVectorize.a $LLVMlib/libLLVMTransformUtils.a $LLVMlib/libLLVMAnalysis.a $LLVMlib/libLLVMObject.a $LLVMlib/libLLVMBitReader.a $LLVMlib/libLLVMMCParser.a $LLVMlib/libLLVMTextAPI.a $LLVMlib/libLLVMProfileData.a $LLVMlib/libLLVMCore.a $LLVMlib/libLLVMRemarks.a $LLVMlib/libLLVMBitstreamReader.a $LLVMlib/libLLVMMC.a $LLVMlib/libLLVMBinaryFormat.a $LLVMlib/libLLVMDebugInfoCodeView.a $LLVMlib/libLLVMDebugInfoMSF.a $LLVMlib/libLLVMSupport.a -lrt -ldl -ltinfo -lpthread -lz -lm $LLVMlib/libLLVMDemangle.a 
 	echo "Finish building analyzer"
 }
-	
+
+echo "WARNING: Stop compiling transformer by technical issues"
+exit 0  
+
 # building Transformer
 function buildTransformer() {
 	echo ""
