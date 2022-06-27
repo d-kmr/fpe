@@ -78,7 +78,7 @@ then
 	git clone $SVFgit
 	echo "Patching to suppress output from SVF"
 	patch SVF/lib/Util/PTAStat.cpp diffs/PTAStat.diff
-	patch SVF/include/PersistentPointsToCache.h diffs/PersistentPointsToCache.diff	
+	patch SVF/include/MemoryModel/PersistentPointsToCache.h diffs/PersistentPointsToCache.diff	
 	echo "cd SVF"	
 	cd SVF
 	echo "build SVF"
